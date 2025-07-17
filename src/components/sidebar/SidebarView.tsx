@@ -114,6 +114,17 @@ export const SidebarView: React.FC<SidebarProps> = (props) => {
                 {!isCollapsed && <span className="button-text">Data Library</span>}
               </button>
             </li>
+            <li className="sidebar-menu-item">
+              <button 
+                className={`sidebar-button ${currentPath === '/metrics' ? 'active' : ''}`}
+                onClick={() => navigate('/metrics')}
+              >
+                <span className="icon">
+                  <FontAwesomeIcon icon={faBook} />
+                </span>
+                {!isCollapsed && <span className="button-text">Metrics</span>}
+              </button>
+            </li>
           </ul>
         </div>
         

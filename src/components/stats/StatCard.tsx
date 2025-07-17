@@ -11,9 +11,10 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'info';
+  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'info' | 'dark';
   subtitle?: string;
   chartData?: number[]; // Array of values for the mini bar chart
+  onClick?: () => void;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -23,7 +24,8 @@ const StatCard: React.FC<StatCardProps> = ({
   trend,
   variant = 'primary',
   subtitle,
-  chartData
+  chartData,
+  onClick
 }) => {
   // Find the max value for scaling the chart
   const maxValue = chartData ? Math.max(...chartData) : 0;
@@ -47,7 +49,10 @@ const StatCard: React.FC<StatCardProps> = ({
   };
   
   return (
-    <div className={`stat-card stat-card-${variant}`}>
+    <div className={`stat-card stat-card-${variant}`}
+    onClick={onClick}
+    style={{ cursor: onClick ? 'pointer' : 'default' }}>
+      
       <div className="stat-card-icon">
         <FontAwesomeIcon icon={icon} />
       </div>
