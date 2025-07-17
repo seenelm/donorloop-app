@@ -17,7 +17,6 @@ import { useAuth } from '../../context/AuthContext';
 
 export const SidebarView: React.FC<SidebarProps> = (props) => {
   const {
-    title,
     navigate,
     currentPath,
     isMobile,
@@ -75,8 +74,8 @@ export const SidebarView: React.FC<SidebarProps> = (props) => {
     <>
       <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <img src={donorLoopLogo} alt="Donor Loop Logo" className="sidebar-logo" />
-          {!isCollapsed && <h2>{title}</h2>}
+          <img src={donorLoopLogo} alt="Tanwir Institute Logo" className="sidebar-logo" />
+          {!isCollapsed && <h2>Tanwir Institute</h2>}
         </div>
         
         <div className="sidebar-section">

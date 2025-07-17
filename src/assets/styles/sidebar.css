@@ -28,6 +28,8 @@
   padding: 1.5rem;
   display: flex;
   align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .sidebar.collapsed .sidebar-header {
@@ -41,16 +43,23 @@
   font-weight: bold;
   display: flex;
   align-items: center;
+  font-size: 1.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-logo {
-  width: 30px;
-  height: 30px;
-  margin-right: 8px;
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  border-radius: 4px;
 }
 
 .sidebar.collapsed .sidebar-logo {
   margin-right: 0;
+  width: 36px;
+  height: 36px;
 }
 
 .sidebar-section {
@@ -109,8 +118,8 @@
 }
 
 .sidebar-button.active {
-  background-color: var(--primary-color);
-  color: white;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--primary-color);
   font-weight: bold;
   border-radius: 8px;
 }
@@ -130,7 +139,7 @@
 }
 
 .sidebar-button.active .icon {
-  color: white;
+  color: var(--primary-color);
 }
 
 .button-text {
@@ -273,7 +282,8 @@
   }
   
   .sidebar-button.active {
-    background-color: var(--primary-color);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--primary-color);
   }
   
   .icon {
@@ -291,6 +301,11 @@
 
   .sidebar-toggle-button:hover {
     background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .sidebar-header {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--border-color);
   }
 }
 
