@@ -16,7 +16,11 @@ import { fetchGifts, fetchDonors, type GiftData, type DonorData } from '../utils
 import StatCard from '../components/stats/StatCard';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-type GiftWithDonor = GiftData & { donor?: DonorData | null };
+// Create a new type that omits the 'donor' property from GiftData
+type GiftDataWithoutDonor = Omit<GiftData, 'donor'>;
+
+// Then create GiftWithDonor by extending GiftDataWithoutDonor
+type GiftWithDonor = GiftDataWithoutDonor & { donor?: DonorData | null };
 
 type MetricsType = {
   newDonorsLastMonth: number;
@@ -80,7 +84,7 @@ const Metrics: React.FC = () => {
     recBelowWMA1mo: 0,
     nonRecAboveWMA1mo: 0,
     nonRecBelowWMA1mo: 0,
-    recurringDonationRatio : 0,
+    recurringDonationRatio: 0,
   });
 
   useEffect(() => {
@@ -129,8 +133,8 @@ const Metrics: React.FC = () => {
         const recurringMonth = gifts
           .filter(g => g.isrecurring && g.giftdate && new Date(g.giftdate) >= oneMonthAgo)
           .map(g => {
-            const { donor, ...rest } = g;
-            return { ...rest, donor: donorMap[g.donorid] || null };
+            // Create a proper GiftWithDonor object
+            return { ...g, donor: donorMap[g.donorid] || null };
           });
         setRecurringGiftsMonth(recurringMonth);
 
@@ -149,10 +153,10 @@ const Metrics: React.FC = () => {
 
         // 5. Build full sorted list for dropdown
         const rawDonations = gifts
-          .filter(g => g.giftdate && new Date(g.giftdate) >= oneMonthAgo && g.totalamount! > 0)
+          .filter(g => g.giftdate && new Date(g.giftdate) >= oneMonthAgo)
           .map(g => {
-            const { donor, ...rest } = g;
-            return { ...rest, donor: donorMap[g.donorid!] || null };
+            // Create a proper GiftWithDonor object
+            return { ...g, donor: donorMap[g.donorid] || null };
           })
           .sort((a, b) => (b.totalamount! - a.totalamount!));
         setRawDonationsList(rawDonations);
