@@ -11,6 +11,7 @@ import {
   faArrowTrendUp,
   faArrowTrendDown,
   faInfoCircle,
+  faUserSlash,
 } from '@fortawesome/free-solid-svg-icons';
 import { fetchGifts, fetchDonors, type GiftData, type DonorData } from '../utils/supabaseClient';
 import StatCard from '../components/stats/StatCard';
@@ -33,6 +34,8 @@ type MetricsType = {
   nonRecAboveWMA1mo: number;
   nonRecBelowWMA1mo: number;
   recurringDonationRatio: number;
+  churnedLargeDonors: number;
+  monthlyDonorsWhoChurned: number;
 };
 
 const Metrics: React.FC = () => {
@@ -47,6 +50,16 @@ const Metrics: React.FC = () => {
   const [counts3mo, setCounts3mo] = useState<Record<string, number>>({});
   const [totals3mo, setTotals3mo] = useState<Record<string, number>>({});
   const [activeDonorsList, setActiveDonorsList] = useState<DonorData[]>([]);
+  const [wmaDetails, setWmaDetails] = useState< { monthLabel: string; total: number; weight: number }[]>([]);
+  const [churnedLargeDetails, setChurnedLargeDetails] = useState<{ donor: DonorData; priorYearSum: number }[] >([]);
+  const [showChurnedLarge, setShowChurnedLarge] = useState(false);
+  const [showChurned, setShowChurned] = useState(false);
+  const [churnedDonorsList, setChurnedDonorsList] = useState<DonorData[]>([]);
+  const [countsOld3mo, setCountsOld3mo] = useState<Record<string, number>>({});
+  const [totalsOld3mo, setTotalsOld3mo] = useState<Record<string, number>>({});
+  const [lastGiftDates, setLastGiftDates] = useState<Record<string, Date>>({});
+
+
 
   const [showNew, setShowNew] = useState(false);
   const [showStats, setShowStats] = useState(false);
@@ -62,9 +75,7 @@ const Metrics: React.FC = () => {
   const [showWMANonRecAbove, setShowWMANonRecAbove] = useState(false);
   const [showWMANonRecBelow, setShowWMANonRecBelow] = useState(false);
 
-  const [wmaDetails, setWmaDetails] = useState<
-    { monthLabel: string; total: number; weight: number }[]
-  >([]);
+
 
   const [metrics, setMetrics] = useState<MetricsType>({
     newDonorsLastMonth: 0,
@@ -81,7 +92,15 @@ const Metrics: React.FC = () => {
     nonRecAboveWMA1mo: 0,
     nonRecBelowWMA1mo: 0,
     recurringDonationRatio : 0,
+    churnedLargeDonors: 0,
+    monthlyDonorsWhoChurned: 0,
   });
+
+const today       = new Date();
+const oneYearAgo  = new Date(today);
+oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+
 
   useEffect(() => {
     const loadMetrics = async () => {
@@ -246,6 +265,112 @@ const Metrics: React.FC = () => {
         setTotals3mo(totals3mo);
         setActiveDonorsList(activeDonors);
 
+        // 10. Large donors who gave any time before oneYearAgo, but nothing since:
+        const priorYearSums: Record<string, number> = {};
+        gifts.forEach(g => {
+          if (!g.donorid || !g.giftdate) return;
+          const d = new Date(g.giftdate);
+          if (d < oneYearAgo) {
+            priorYearSums[g.donorid] = (priorYearSums[g.donorid] || 0) + (g.totalamount || 0);
+          }
+        });
+
+        const recentDonorIds = new Set(
+          gifts
+            .filter(g => g.donorid && g.giftdate && new Date(g.giftdate) >= oneYearAgo)
+            .map(g => g.donorid!)
+        );
+
+        const LARGE_THRESHOLD = 1000;
+
+        const churnedLargeDonors = Object.entries(priorYearSums)
+          .filter(([donorid, sum]) => sum >= LARGE_THRESHOLD && !recentDonorIds.has(donorid))
+          .length;
+
+          const churnedLargeList = Object.entries(priorYearSums)
+            .filter(([donorid, sum]) => sum >= LARGE_THRESHOLD && !recentDonorIds.has(donorid))
+            .map(([donorid, sum]) => ({
+              donor: donorMap[donorid]!,
+              priorYearSum: sum,
+            }));
+
+          setChurnedLargeDetails(churnedLargeList);
+
+          //11. Monthly Donors Who Churned
+          const pastGifts = gifts.filter(g => {
+            if (!g.giftdate) return false;
+            return new Date(g.giftdate) < oneYearAgo;
+          });
+
+          const giftsByDonor: Record<string, Date[]> = {};
+          pastGifts.forEach(g => {
+            if (!g.donorid || !g.giftdate) return;
+            if (!giftsByDonor[g.donorid]) giftsByDonor[g.donorid] = [];
+            giftsByDonor[g.donorid].push(new Date(g.giftdate));
+          });
+          for (const donorid in giftsByDonor) {
+            giftsByDonor[donorid].sort((a, b) => a.getTime() - b.getTime());
+          }
+
+          function hasActive3MonthWindow(dates: Date[]): boolean {
+            for (let i = 0; i < dates.length; i++) {
+              let start = dates[i];
+              let count = 1;
+              for (let j = i + 1; j < dates.length; j++) {
+                const diffMonths = (dates[j].getFullYear() - start.getFullYear()) * 12 + (dates[j].getMonth() - start.getMonth());
+                if (diffMonths <= 2) { // 3 months window
+                  count++;
+                  if (count >= 2) return true;
+                } else {
+                  break;
+                }
+              }
+            }
+            return false;
+          }
+
+          const churnedDonorIds = Object.entries(giftsByDonor)
+            .filter(([donorid, dates]) => hasActive3MonthWindow(dates))
+            .map(([donorid]) => donorid)
+            .filter(donorid => !activeDonorIds.includes(donorid));
+
+          const churnedDonors = churnedDonorIds
+            .map(id => donorMap[id])
+            .filter((d): d is DonorData => !!d);
+
+          const countsOld3mo: Record<string, number> = {};
+          const totalsOld3mo: Record<string, number> = {};
+          pastGifts.forEach(g => {
+            if (!g.donorid) return;
+            if (churnedDonorIds.includes(g.donorid)) {
+              countsOld3mo[g.donorid] = (countsOld3mo[g.donorid] || 0) + 1;
+              totalsOld3mo[g.donorid] = (totalsOld3mo[g.donorid] || 0) + (g.totalamount ?? 0);
+            }
+          });
+
+          setCountsOld3mo(countsOld3mo);
+          setTotalsOld3mo(totalsOld3mo);
+          setChurnedDonorsList(churnedDonors);
+
+          const monthlyDonorsWhoChurned = churnedDonors.length;
+
+          setMetrics(prev => ({ ...prev, monthlyDonorsWhoChurned }));
+
+          const lastGiftDates: Record<string, Date> = {};
+
+        pastGifts.forEach(g => {
+          if (!g.donorid || !g.giftdate) return;
+          if (churnedDonorIds.includes(g.donorid)) {
+            const giftDate = new Date(g.giftdate);
+            if (!lastGiftDates[g.donorid] || giftDate > lastGiftDates[g.donorid]) {
+              lastGiftDates[g.donorid] = giftDate;
+            }
+          }
+        });
+
+        setLastGiftDates(lastGiftDates);
+
+
         setMetrics({
           newDonorsLastMonth: newDonors.length,
           recurringDonorsLastMonth,
@@ -261,6 +386,8 @@ const Metrics: React.FC = () => {
           nonRecBelowWMA1mo: nonRecBelowWMA.length,
           activeDonorsLast3mo: activeDonors.length,
           recurringDonationRatio,
+          churnedLargeDonors,
+          monthlyDonorsWhoChurned,
         });
       } catch (err) {
         console.error(err);
@@ -412,7 +539,26 @@ const Metrics: React.FC = () => {
           subtitle="Recurring share of total donation value"
           icon={faInfoCircle}
           />
+        <StatCard
+          title="Churned Large Donors"
+          value={metrics.churnedLargeDonors}
+          icon={faUserSlash}
+          variant="warning"
+          subtitle="Click to view list"
+          onClick={() => setShowChurnedLarge(p => !p)}
+        />
+        <StatCard
+          title="Monthly Donors Who Churned"
+          value={metrics.monthlyDonorsWhoChurned}
+          icon={faUserSlash}
+          variant="warning"
+          onClick={() => setShowChurned(prev => !prev)}
+          subtitle="Click to view list"
+        />
+
+
       </div>
+
 
       {showNew && (
         <div className="top-list-card top-list-card-info">
@@ -779,6 +925,81 @@ const Metrics: React.FC = () => {
         </div>
       </div>
     )}
+
+            {showChurnedLarge && (
+          <div className="top-list-card top-list-card-danger">
+            <div className="top-list-header">
+              <div className="top-list-icon">
+                <FontAwesomeIcon icon={faUserSlash} />
+              </div>
+              <h3 className="top-list-title">
+                Large Donors (Year – 1) but Churned
+              </h3>
+            </div>
+            <div className="top-list-content">
+              {churnedLargeDetails.length === 0 ? (
+                <div className="top-list-empty">
+                  No large donors have churned.
+                </div>
+              ) : (
+                <ul className="top-list">
+                  {churnedLargeDetails.map((item, i) => (
+                    <li key={item.donor.donorid} className="top-list-item">
+                      <div className="top-list-rank">{i + 1}</div>
+                      <div className="top-list-avatar">
+                        {donorInitials(item.donor)}
+                      </div>
+                      <div className="top-list-details">
+                        {donorFullName(item.donor)}
+                      </div>
+                      <div className="top-list-secondary">
+                        Prior‑year total: {formatAmount(item.priorYearSum)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+    )}
+
+              {showChurned && (
+      <div className="top-list-card top-list-card-warning">
+        <div className="top-list-header">
+          <div className="top-list-icon">
+            <FontAwesomeIcon icon={faUserSlash} />
+          </div>
+          <h3 className="top-list-title">Monthly Donors Who Churned (Over a Year Ago || 3 Months Span)</h3>
+        </div>
+        <div className="top-list-content">
+          {churnedDonorsList.length === 0 ? (
+            <div className="top-list-empty">No churned donors found.</div>
+          ) : (
+            <ul className="top-list">
+              {churnedDonorsList.map((d, i) => {
+                const lastDate = lastGiftDates[d.donorid];
+                return (
+                  <li key={d.donorid} className="top-list-item">
+                    <div className="top-list-rank">{i + 1}</div>
+                    <div className="top-list-avatar">{donorInitials(d)}</div>
+                    <div className="top-list-details">{donorFullName(d)}</div>
+                    <div className="top-list-secondary">
+                      {countsOld3mo[d.donorid] || 0} gifts · {formatAmount(totalsOld3mo[d.donorid])}
+                      {lastDate && (
+                        <span style={{ marginLeft: 10, fontStyle: "italic", color: "#555" }}>
+                          Last Gift: {new Date(lastDate.getTime() + 24 * 60 * 60 * 1000).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    )}
+
 
     </div>
   );
