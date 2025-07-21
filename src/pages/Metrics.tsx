@@ -937,7 +937,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
                 <FontAwesomeIcon icon={faUserSlash} />
               </div>
               <h3 className="top-list-title">
-                Large Donors (Year – 1) but Churned
+                Large Donors (+1 Years Prior) but Churned
               </h3>
             </div>
             <div className="top-list-content">
@@ -957,7 +957,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
                         {donorFullName(item.donor)}
                       </div>
                       <div className="top-list-secondary">
-                        Prior‑year total: {formatAmount(item.priorYearSum)}
+                        Prior‑years total: {formatAmount(item.priorYearSum)}
                       </div>
                     </li>
                   ))}
