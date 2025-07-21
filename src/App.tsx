@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
 import Dashboard from './pages/Dashboard';
 import FundraisingManager from './pages/FundraisingManager';
 import DonorManager from './pages/DonorManager';
+import DonorProfile from './pages/DonorProfile';
 import SidebarView from './components/sidebar';
 import ResizableChatSidebar from './components/chat/ResizableChatSidebar';
 import FloatingChatButton from './components/chat/FloatingChatButton';
@@ -30,6 +31,7 @@ const AuthenticatedLayout = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/fundraising-manager" element={<FundraisingManager />} />
             <Route path="/donor-manager" element={<DonorManager />} />
+            <Route path="/donor-profile/:donorId" element={<DonorProfile />} />
             <Route path="/data-library" element={<DataLibrary />} />
             <Route path="/auth-admin" element={<AuthAdmin />} />
             <Route path="/metrics" element={<Metrics />} />

@@ -83,7 +83,7 @@
 }
 
 .donor-manager-container .donor-table tr:hover {
-  background-color: rgba(49, 223, 162, 0.05);
+  background-color: var(--primary-color-hover);
 }
 
 .donor-manager-container .donor-name-cell {
@@ -172,6 +172,29 @@
 
 .donor-manager-container .action-button:last-child:hover {
   background-color: var(--card-color-hover);
+}
+
+/* No results state */
+.no-results {
+  text-align: center;
+  padding: 3rem;
+  background-color: var(--card-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.no-results p {
+  color: var(--text-secondary-color);
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.no-results p:first-child {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary-color);
+  margin-bottom: 1rem;
 }
 
 /* Responsive styles for mobile */
