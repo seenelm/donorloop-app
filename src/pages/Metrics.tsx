@@ -19,7 +19,10 @@ import {
   faUserTie,
   faStar,
   faGem,
-  faPiggyBank
+  faPiggyBank,
+  faGift,
+  faHandHoldingHeart,
+  faDollarSign,
 } from '@fortawesome/free-solid-svg-icons';
 import { fetchGifts, fetchDonors, type GiftData, type DonorData } from '../utils/supabaseClient';
 import StatCard from '../components/stats/StatCard';
@@ -131,6 +134,23 @@ const Metrics: React.FC = () => {
   const [totalDonationsAllTime, setTotalDonationsAllTime] = useState<number>(0);
   const [monthlyDlvComponents, setMonthlyDlvComponents] = useState({ amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 });
   const [onetimeDlvComponents, setOnetimeDlvComponents] = useState({ amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 });
+  const [totalOnetimeYTD, setTotalOnetimeYTD] = useState<number>(0);
+  const [totalMonthlyYTD, setTotalMonthlyYTD] = useState<number>(0);
+  const [majorOnetimeYTD, setMajorOnetimeYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [mediumOnetimeYTD, setMediumOnetimeYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [normalOnetimeYTD, setNormalOnetimeYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [majorMonthlyYTD, setMajorMonthlyYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [mediumMonthlyYTD, setMediumMonthlyYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [normalMonthlyYTD, setNormalMonthlyYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+
+  const [totalOnetimeAllTime, setTotalOnetimeAllTime] = useState<number>(0);
+  const [totalMonthlyAllTime, setTotalMonthlyAllTime] = useState<number>(0);
+  const [majorOnetimeAllTime, setMajorOnetimeAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [mediumOnetimeAllTime, setMediumOnetimeAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [normalOnetimeAllTime, setNormalOnetimeAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [majorMonthlyAllTime, setMajorMonthlyAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [mediumMonthlyAllTime, setMediumMonthlyAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [normalMonthlyAllTime, setNormalMonthlyAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   
   
 
@@ -764,6 +784,57 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       setOnetimeDlvCohort(onetimeResult.cohortList);
       setOnetimeDlvComponents(onetimeResult.components); // Save components to state
 
+
+      // --- NEW: SPLIT DONATION TIER CALCULATION ---
+
+       const calculateSplitTierTotals = (giftArray: GiftData[]) => {
+        const result = {
+          totalOnetime: 0, totalMonthly: 0,
+          majorOnetime: { total: 0, gifts: [] as GiftData[] }, mediumOnetime: { total: 0, gifts: [] as GiftData[] }, normalOnetime: { total: 0, gifts: [] as GiftData[] },
+          majorMonthly: { total: 0, gifts: [] as GiftData[] }, mediumMonthly: { total: 0, gifts: [] as GiftData[] }, normalMonthly: { total: 0, gifts: [] as GiftData[] },
+        };
+
+        giftArray.forEach(gift => {
+          const amount = gift.totalamount || 0;
+          if (gift.isrecurring) {
+            result.totalMonthly += amount;
+            if (amount >= 100) { result.majorMonthly.total += amount; result.majorMonthly.gifts.push(gift); }
+            else if (amount >= 50) { result.mediumMonthly.total += amount; result.mediumMonthly.gifts.push(gift); }
+            else { result.normalMonthly.total += amount; result.normalMonthly.gifts.push(gift); }
+          } else {
+            result.totalOnetime += amount;
+            if (amount >= 1000) { result.majorOnetime.total += amount; result.majorOnetime.gifts.push(gift); }
+            else if (amount >= 500) { result.mediumOnetime.total += amount; result.mediumOnetime.gifts.push(gift); }
+            else { result.normalOnetime.total += amount; result.normalOnetime.gifts.push(gift); }
+          }
+        });
+        return result;
+      };
+
+      const enrich = (gifts: GiftData[]): GiftWithDonor[] => gifts.map(g => ({ ...g, donor: donorMap[g.donorid] || null })).sort((a, b) => (b.totalamount || 0) - (a.totalamount || 0));
+
+      // --- Calculate for Year-to-Date ---
+      const ytdTotals = calculateSplitTierTotals(currentYearGifts);
+      setTotalOnetimeYTD(ytdTotals.totalOnetime);
+      setTotalMonthlyYTD(ytdTotals.totalMonthly);
+      setMajorOnetimeYTD({ total: ytdTotals.majorOnetime.total, gifts: enrich(ytdTotals.majorOnetime.gifts) });
+      setMediumOnetimeYTD({ total: ytdTotals.mediumOnetime.total, gifts: enrich(ytdTotals.mediumOnetime.gifts) });
+      setNormalOnetimeYTD({ total: ytdTotals.normalOnetime.total, gifts: enrich(ytdTotals.normalOnetime.gifts) });
+      setMajorMonthlyYTD({ total: ytdTotals.majorMonthly.total, gifts: enrich(ytdTotals.majorMonthly.gifts) });
+      setMediumMonthlyYTD({ total: ytdTotals.mediumMonthly.total, gifts: enrich(ytdTotals.mediumMonthly.gifts) });
+      setNormalMonthlyYTD({ total: ytdTotals.normalMonthly.total, gifts: enrich(ytdTotals.normalMonthly.gifts) });
+
+      // --- Calculate for All-Time ---
+      const allTimeTotals = calculateSplitTierTotals(gifts);
+      setTotalOnetimeAllTime(allTimeTotals.totalOnetime);
+      setTotalMonthlyAllTime(allTimeTotals.totalMonthly);
+      setMajorOnetimeAllTime({ total: allTimeTotals.majorOnetime.total, gifts: enrich(allTimeTotals.majorOnetime.gifts) });
+      setMediumOnetimeAllTime({ total: allTimeTotals.mediumOnetime.total, gifts: enrich(allTimeTotals.mediumOnetime.gifts) });
+      setNormalOnetimeAllTime({ total: allTimeTotals.normalOnetime.total, gifts: enrich(allTimeTotals.normalOnetime.gifts) });
+      setMajorMonthlyAllTime({ total: allTimeTotals.majorMonthly.total, gifts: enrich(allTimeTotals.majorMonthly.gifts) });
+      setMediumMonthlyAllTime({ total: allTimeTotals.mediumMonthly.total, gifts: enrich(allTimeTotals.mediumMonthly.gifts) });
+      setNormalMonthlyAllTime({ total: allTimeTotals.normalMonthly.total, gifts: enrich(allTimeTotals.normalMonthly.gifts) });
+
         setMetrics({
           newDonorsLastMonth: newDonors.length,
           recurringDonorsLastMonth,
@@ -800,6 +871,9 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
 
 
+
+// Add this line before metricDefinitions to define currentYear in the component scope
+  const currentYear = new Date().getFullYear();
 
   const metricDefinitions = [
     {
@@ -1123,6 +1197,177 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   categories: ['Donor Classifications'],
 },
 {
+  id: 'totalOneTimeYTD',
+  title: 'Total Donations (YTD)',
+  value: formatAmount(totalOnetimeYTD),
+  icon: faDollarSign,
+  variant: 'primary',
+  subtitle: `Since Jan 1, ${currentYear}`,
+  categories: ['Donor Classifications'],
+},
+// --- YTD One-Time Tiers ---
+{
+  id: 'totalOnetimeYTD',
+  title: 'Total One-Time Donations (YTD)',
+  value: formatAmount(totalOnetimeYTD),
+  icon: faDollarSign,
+  variant: 'primary',
+  subtitle: `Since Jan 1, ${currentYear}`,
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'majorOnetimeYTD',
+  title: 'Major One-Time Donations (YTD)',
+  value: formatAmount(majorOnetimeYTD.total),
+  icon: faStar,
+  variant: 'success',
+  subtitle: `Gifts ≥ $1,000 (${(totalOnetimeYTD > 0 ? (majorOnetimeYTD.total / totalOnetimeYTD) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('majorOnetimeYTD'),
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'mediumOnetimeYTD',
+  title: 'Medium One-Time Donations (YTD)',
+  value: formatAmount(mediumOnetimeYTD.total),
+  icon: faGift,
+  variant: 'info',
+  subtitle: `Gifts $500-$999 (${(totalOnetimeYTD > 0 ? (mediumOnetimeYTD.total / totalOnetimeYTD) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('mediumOnetimeYTD'),
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'normalOnetimeYTD',
+  title: 'Normal One-Time Donations (YTD)',
+  value: formatAmount(normalOnetimeYTD.total),
+  icon: faHandHoldingHeart,
+  variant: 'secondary',
+  subtitle: `Gifts < $500 (${(totalOnetimeYTD > 0 ? (normalOnetimeYTD.total / totalOnetimeYTD) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('normalOnetimeYTD'),
+  categories: ['Donor Classifications'],
+},
+
+// --- YTD Monthly Tiers ---
+{
+  id: 'totalMonthlyYTD',
+  title: 'Total Monthly Donations (YTD)',
+  value: formatAmount(totalMonthlyYTD),
+  icon: faCalendarAlt,
+  variant: 'primary',
+  subtitle: `Since Jan 1, ${currentYear}`,
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'majorMonthlyYTD',
+  title: 'Major Monthly Donations (YTD)',
+  value: formatAmount(majorMonthlyYTD.total),
+  icon: faStar,
+  variant: 'success',
+  subtitle: `Gifts ≥ $100 (${(totalMonthlyYTD > 0 ? (majorMonthlyYTD.total / totalMonthlyYTD) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('majorMonthlyYTD'),
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'mediumMonthlyYTD',
+  title: 'Medium Monthly Donations (YTD)',
+  value: formatAmount(mediumMonthlyYTD.total),
+  icon: faGift,
+  variant: 'info',
+  subtitle: `Gifts $50-$99 (${(totalMonthlyYTD > 0 ? (mediumMonthlyYTD.total / totalMonthlyYTD) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('mediumMonthlyYTD'),
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'normalMonthlyYTD',
+  title: 'Normal Monthly Donations (YTD)',
+  value: formatAmount(normalMonthlyYTD.total),
+  icon: faHandHoldingHeart,
+  variant: 'secondary',
+  subtitle: `Gifts < $50 (${(totalMonthlyYTD > 0 ? (normalMonthlyYTD.total / totalMonthlyYTD) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('normalMonthlyYTD'),
+  categories: ['Donor Classifications'],
+},
+// --- All-Time One-Time Tiers ---
+{
+  id: 'totalOnetimeAllTime',
+  title: 'Total One-Time Donations (All-Time)',
+  value: formatAmount(totalOnetimeAllTime),
+  icon: faDollarSign,
+  variant: 'dark',
+  subtitle: 'All non-recurring gifts',
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'majorOnetimeAllTime',
+  title: 'Major One-Time Donations (All-Time)',
+  value: formatAmount(majorOnetimeAllTime.total),
+  icon: faStar,
+  variant: 'dark',
+  subtitle: `Gifts ≥ $1,000 (${(totalOnetimeAllTime > 0 ? (majorOnetimeAllTime.total / totalOnetimeAllTime) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('majorOnetimeAllTime'),
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'mediumOnetimeAllTime',
+  title: 'Medium One-Time Donations (All-Time)',
+  value: formatAmount(mediumOnetimeAllTime.total),
+  icon: faGift,
+  variant: 'dark',
+  subtitle: `Gifts $500-$999 (${(totalOnetimeAllTime > 0 ? (mediumOnetimeAllTime.total / totalOnetimeAllTime) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('mediumOnetimeAllTime'),
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'normalOnetimeAllTime',
+  title: 'Normal One-Time Donations (All-Time)',
+  value: formatAmount(normalOnetimeAllTime.total),
+  icon: faHandHoldingHeart,
+  variant: 'dark',
+  subtitle: `Gifts < $500 (${(totalOnetimeAllTime > 0 ? (normalOnetimeAllTime.total / totalOnetimeAllTime) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('normalOnetimeAllTime'),
+  categories: ['Donor Classifications'],
+},
+
+// --- All-Time Monthly Tiers ---
+{
+  id: 'totalMonthlyAllTime',
+  title: 'Total Monthly Donations (All-Time)',
+  value: formatAmount(totalMonthlyAllTime),
+  icon: faCalendarAlt,
+  variant: 'dark',
+  subtitle: 'All recurring gifts',
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'majorMonthlyAllTime',
+  title: 'Major Monthly Donations (All-Time)',
+  value: formatAmount(majorMonthlyAllTime.total),
+  icon: faStar,
+  variant: 'dark',
+  subtitle: `Gifts ≥ $100 (${(totalMonthlyAllTime > 0 ? (majorMonthlyAllTime.total / totalMonthlyAllTime) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('majorMonthlyAllTime'),
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'mediumMonthlyAllTime',
+  title: 'Medium Monthly Donations (All-Time)',
+  value: formatAmount(mediumMonthlyAllTime.total),
+  icon: faGift,
+  variant: 'dark',
+  subtitle: `Gifts $50-$99 (${(totalMonthlyAllTime > 0 ? (mediumMonthlyAllTime.total / totalMonthlyAllTime) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('mediumMonthlyAllTime'),
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'normalMonthlyAllTime',
+  title: 'Normal Monthly Donations (All-Time)',
+  value: formatAmount(normalMonthlyAllTime.total),
+  icon: faHandHoldingHeart,
+  variant: 'dark',
+  subtitle: `Gifts < $50 (${(totalMonthlyAllTime > 0 ? (normalMonthlyAllTime.total / totalMonthlyAllTime) * 100 : 0).toFixed(1)}%)`,
+  onClick: () => openModal('normalMonthlyAllTime'),
+  categories: ['Donor Classifications'],
+},
+{
   id: 'churnedMajorMonthly',
   title: 'Churned Major Monthly Donors (Year To Date)',
   value: churnedMonthlyMajor.length, 
@@ -1190,7 +1435,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
           options: [
             'All Metrics', 'Top Donor Metrics', 'Current Year Metrics', 
             'Donor Classifications', 
-            'Retention & Churn', 'Lifetime Value'
+            'Retention & Churn', 'Lifetime Value',
           ]
         }}
         onFilterChange={handleFilterChange}
@@ -1352,6 +1597,22 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         {modalContentId === 'allTimeNormalOnetime' && (
           <div className="top-list-content"><ul className="top-list">{allTimeNormalOnetime.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>
         )}
+       {/* === Donation Tier Lists (YTD) === */}
+        {modalContentId === 'majorOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{majorOnetimeYTD.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{mediumOnetimeYTD.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{normalOnetimeYTD.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{majorMonthlyYTD.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{mediumMonthlyYTD.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{normalMonthlyYTD.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+
+        {/* === Donation Tier Lists (All-Time) === */}
+        {modalContentId === 'majorOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{majorOnetimeAllTime.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{mediumOnetimeAllTime.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{normalOnetimeAllTime.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{majorMonthlyAllTime.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{mediumMonthlyAllTime.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{normalMonthlyAllTime.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+
       </Modal>
     </div>
       )}
