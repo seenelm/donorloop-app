@@ -98,14 +98,16 @@ const Controls: React.FC<ControlsProps> = ({
         </form>
         
         <div className="action-buttons1">
+          {primaryButtonLabel && (
             <button className="import-button1" onClick={onPrimaryAction}>
               <FontAwesomeIcon icon={faFileImport} /> {primaryButtonLabel}
             </button>
-            {showSecondaryButton && (
-              <button className="add-button1" onClick={onSecondaryAction}>
-                <FontAwesomeIcon icon={faPlus} /> {secondaryButtonLabel}
-              </button>
-            )}
+          )}
+          {showSecondaryButton && (
+            <button className="add-button1" onClick={onSecondaryAction}>
+              <FontAwesomeIcon icon={faPlus} /> {secondaryButtonLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

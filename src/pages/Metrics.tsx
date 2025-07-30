@@ -12,16 +12,75 @@ import {
   faArrowTrendDown,
   faInfoCircle,
   faUserSlash,
+  faUser,
+  faUserCheck,
+  faUserFriends,
+  faUserEdit,
+  faUserTie,
+  faStar,
+  faGem,
+  faPiggyBank
 } from '@fortawesome/free-solid-svg-icons';
 import { fetchGifts, fetchDonors, type GiftData, type DonorData } from '../utils/supabaseClient';
 import StatCard from '../components/stats/StatCard';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import Controls from '../components/controls/Controls';
+import './styles/metrics.css';
+import Modal from '../components/popup/modal'; // Adjust path as needed
+
+const donorInitials = (donor?: DonorData | null) =>
+  donor ? `${donor.firstname?.[0] || ''}${donor.lastname?.[0] || ''}` : '—';
+
+const donorFullName = (donor?: DonorData | null) =>
+  donor ? `${donor.firstname || ''} ${donor.lastname || ''}`.trim() : '';
+
+const formatDate = (date?: string) => {
+  if (!date) return '';
+  const d = new Date(date);
+  d.setDate(d.getDate() + 1);
+  return d.toLocaleDateString();
+};
+
+const formatAmount = (amount?: number) => {
+  if (amount === undefined) return '';
+  
+  // This automatically handles currency symbols, commas, and decimal points.
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+};
 
 // Create a new type that omits the 'donor' property from GiftData
 type GiftDataWithoutDonor = Omit<GiftData, 'donor'>;
 
 // Then create GiftWithDonor by extending GiftDataWithoutDonor
 type GiftWithDonor = GiftDataWithoutDonor & { donor?: DonorData | null };
+
+type TopDonorInfo = {
+  donor: DonorData;
+  totalAmount: number;
+  type: 'Recurring' | 'One-Time';
+};
+
+type ClassifiedDonor = {
+  donor: DonorData;
+  amount: number; // This will be the monthly amount or annual total
+};
+
+type ChurnedDonorInfo = {
+  donor: DonorData;
+  lifetimeTotal: number;
+  lastGiftDate: string;
+  lastRecurringAmount?: number;
+  lastRecurringDate?: string;
+};
+
+type ContributionListItem = {
+  donor: DonorData;
+  totalContribution: number;
+};
+
 
 type MetricsType = {
   newDonorsLastMonth: number;
@@ -45,41 +104,70 @@ type MetricsType = {
 const Metrics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState('All Metrics');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [newDonorsList, setNewDonorsList] = useState<DonorData[]>([]);
   const [recurringGiftsMonth, setRecurringGiftsMonth] = useState<GiftWithDonor[]>([]);
   const [rawDonationsList, setRawDonationsList] = useState<GiftWithDonor[]>([]);
   const [medianIndex, setMedianIndex] = useState<number | null>(null);
+  const [normalOnetime, setNormalOnetime] = useState<ClassifiedDonor[]>([]);
+  const [mediumOnetime, setMediumOnetime] = useState<ClassifiedDonor[]>([]);
+  const [majorOnetime, setMajorOnetime] = useState<ClassifiedDonor[]>([]);
+  const [normalMonthly, setNormalMonthly] = useState<ClassifiedDonor[]>([]);
+  const [mediumMonthly, setMediumMonthly] = useState<ClassifiedDonor[]>([]);
+  const [majorMonthly, setMajorMonthly] = useState<ClassifiedDonor[]>([]);
+  const [allTimeNormalOnetime, setAllTimeNormalOnetime] = useState<ClassifiedDonor[]>([]);
+  const [allTimeMediumOnetime, setAllTimeMediumOnetime] = useState<ClassifiedDonor[]>([]);
+  const [allTimeMajorOnetime, setAllTimeMajorOnetime] = useState<ClassifiedDonor[]>([]);
+  const [allTimeNormalMonthly, setAllTimeNormalMonthly] = useState<ClassifiedDonor[]>([]);
+  const [allTimeMediumMonthly, setAllTimeMediumMonthly] = useState<ClassifiedDonor[]>([]);
+  const [allTimeMajorMonthly, setAllTimeMajorMonthly] = useState<ClassifiedDonor[]>([]);
+  const [churnedMonthlyMajor, setChurnedMonthlyMajor] = useState<ChurnedDonorInfo[]>([]);
+  const [monthlyMajorDLV, setMonthlyMajorDLV] = useState<number>(0);
+  const [onetimeMajorDLV, setOnetimeMajorDLV] = useState<number>(0);
+  const [monthlyDlvCohort, setMonthlyDlvCohort] = useState<ContributionListItem[]>([]);
+  const [onetimeDlvCohort, setOnetimeDlvCohort] = useState<ContributionListItem[]>([]);
+  const [totalDonationsAllTime, setTotalDonationsAllTime] = useState<number>(0);
+  const [monthlyDlvComponents, setMonthlyDlvComponents] = useState({ amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 });
+  const [onetimeDlvComponents, setOnetimeDlvComponents] = useState({ amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 });
+  
+  
 
   const [counts3mo, setCounts3mo] = useState<Record<string, number>>({});
   const [totals3mo, setTotals3mo] = useState<Record<string, number>>({});
   const [activeDonorsList, setActiveDonorsList] = useState<DonorData[]>([]);
   const [wmaDetails, setWmaDetails] = useState< { monthLabel: string; total: number; weight: number }[]>([]);
   const [churnedLargeDetails, setChurnedLargeDetails] = useState<{ donor: DonorData; priorYearSum: number }[] >([]);
-  const [showChurnedLarge, setShowChurnedLarge] = useState(false);
-  const [showChurned, setShowChurned] = useState(false);
   const [churnedDonorsList, setChurnedDonorsList] = useState<DonorData[]>([]);
   const [countsOld3mo, setCountsOld3mo] = useState<Record<string, number>>({});
   const [totalsOld3mo, setTotalsOld3mo] = useState<Record<string, number>>({});
   const [lastGiftDates, setLastGiftDates] = useState<Record<string, Date>>({});
 
+  const [topRecurringDonors, setTopRecurringDonors] = useState<TopDonorInfo[]>([]);
+  const [topNonRecurringDonors, setTopNonRecurringDonors] = useState<TopDonorInfo[]>([]);
+  const [majorDonorContributionAmount, setMajorDonorContributionAmount] = useState<string>('');
+  const [majorDonorContributionPercentage, setMajorDonorContributionPercentage] = useState<number>(0);
+  const [majorContributorsList, setMajorContributorsList] = useState<ContributionListItem[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalContentId, setModalContentId] = useState<string | null>(null);
+  const [retainedMajorMonthly, setRetainedMajorMonthly] = useState<ClassifiedDonor[]>([]);
+
+      const openModal = (metricId: string) => {
+        setModalContentId(metricId);
+        setIsModalOpen(true);
+      };
+
+      const closeModal = () => {
+        setIsModalOpen(false);
+        setModalContentId(null);
+      };
 
 
-  const [showNew, setShowNew] = useState(false);
-  const [showStats, setShowStats] = useState(false);
-  const [showRecurring, setShowRecurring] = useState(false);
-  const [showActive, setShowActive] = useState(false);
-  const [showWMA, setShowWMA] = useState(false);
-  const [showRecAbove, setShowRecAbove] = useState(false);
-  const [showRecBelow, setShowRecBelow] = useState(false);
-  const [showNonRecAbove, setShowNonRecAbove] = useState(false);
-  const [showNonRecBelow, setShowNonRecBelow] = useState(false);
-  const [showWMARecAbove, setShowWMARecAbove] = useState(false);
-  const [showWMARecBelow, setShowWMARecBelow] = useState(false);
-  const [showWMANonRecAbove, setShowWMANonRecAbove] = useState(false);
-  const [showWMANonRecBelow, setShowWMANonRecBelow] = useState(false);
 
-
+  const handleFilterChange = (filter: string) => {
+    setActiveFilter(filter);
+  };
 
   const [metrics, setMetrics] = useState<MetricsType>({
     newDonorsLastMonth: 0,
@@ -118,6 +206,8 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         const donors = donorsRes.data || [];
         const now = new Date();
 
+        const currentYear = now.getFullYear();
+
         // Build donor lookup
         const donorMap: Record<string, DonorData> = {};
         donors.forEach(d => { if (d.donorid) donorMap[d.donorid] = d; });
@@ -133,6 +223,24 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         const giftsLast3mo = gifts.filter(g =>
           g.giftdate && new Date(g.giftdate) >= threeMonthsAgo
         );
+        
+        const lifetimeTotals: Record<string, number> = {};
+        const lastGiftDates: Record<string, string> = {};
+
+        gifts.forEach(gift => {
+        if (gift.donorid) {
+            // Add to lifetime total
+            lifetimeTotals[gift.donorid] = (lifetimeTotals[gift.donorid] || 0) + (gift.totalamount || 0);
+
+            // Check for last gift date
+            if (gift.giftdate) {
+              const giftDate = new Date(gift.giftdate);
+              if (!lastGiftDates[gift.donorid] || giftDate > new Date(lastGiftDates[gift.donorid])) {
+                  lastGiftDates[gift.donorid] = gift.giftdate;
+              }
+            }
+        }
+    });
 
         // 1. New donors
         const newDonors = donors.filter(d => d.created_at && new Date(d.created_at) >= oneMonthAgo);
@@ -360,20 +468,301 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
           setMetrics(prev => ({ ...prev, monthlyDonorsWhoChurned }));
 
-          const lastGiftDates: Record<string, Date> = {};
-
-        pastGifts.forEach(g => {
-          if (!g.donorid || !g.giftdate) return;
-          if (churnedDonorIds.includes(g.donorid)) {
-            const giftDate = new Date(g.giftdate);
-            if (!lastGiftDates[g.donorid] || giftDate > lastGiftDates[g.donorid]) {
-              lastGiftDates[g.donorid] = giftDate;
-            }
+          //  Total All-Time Donations Calculation 
+      const totalSum = gifts.reduce((acc, gift) => acc + (gift.totalamount || 0), 0);
+      setTotalDonationsAllTime(totalSum);
+      
+      // Filter gifts for the current year (used by multiple calculations)
+      const currentYearGifts = gifts.filter(g => g.giftdate && g.giftdate.startsWith(currentYear.toString()));
+      
+      const allTimeMonthlyDonations: Record<string, number[]> = {};
+      const lastRecurringGiftDetails: Record<string, { date: Date; amount: number }> = {};
+      gifts.filter(g => g.isrecurring).forEach(gift => {
+          if (gift.donorid && gift.giftdate) {
+              if (!allTimeMonthlyDonations[gift.donorid]) allTimeMonthlyDonations[gift.donorid] = [];
+              allTimeMonthlyDonations[gift.donorid].push(gift.totalamount || 0);
+              const currentGiftDate = new Date(gift.giftdate);
+              const storedGift = lastRecurringGiftDetails[gift.donorid];
+              if (!storedGift || currentGiftDate > storedGift.date) {
+                  lastRecurringGiftDetails[gift.donorid] = { date: currentGiftDate, amount: gift.totalamount || 0 };
+              }
           }
+      });
+      const allTimeMonthlyIds = new Set(Object.keys(allTimeMonthlyDonations));
+
+      //ALL-TIME DONOR CLASSIFICATION
+
+      // All-Time Monthly
+      const at_normMonthly: ClassifiedDonor[] = [], at_medMonthly: ClassifiedDonor[] = [], at_majMonthly: ClassifiedDonor[] = [];
+      for (const donorId in allTimeMonthlyDonations) {
+          const donor = donorMap[donorId];
+          const amounts = allTimeMonthlyDonations[donorId];
+          if (donor && amounts && amounts.length > 0) {
+              const averageAmount = amounts.reduce((acc, val) => acc + val, 0) / amounts.length;
+              const classifiedDonor = { donor, amount: averageAmount };
+              if (averageAmount >= 100) at_majMonthly.push(classifiedDonor);
+              else if (averageAmount >= 50) at_medMonthly.push(classifiedDonor);
+              else at_normMonthly.push(classifiedDonor);
+          }
+      }
+      setAllTimeNormalMonthly(at_normMonthly);
+      setAllTimeMediumMonthly(at_medMonthly);
+      setAllTimeMajorMonthly(at_majMonthly);
+
+      // All-Time One-Time (based on NON-recurring gifts)
+      const allTimeOnetimeTotals: Record<string, number> = {};
+      gifts.filter(g => !g.isrecurring && g.donorid).forEach(gift => { // The FIX is here: !g.isrecurring
+          allTimeOnetimeTotals[gift.donorid] = (allTimeOnetimeTotals[gift.donorid] || 0) + (gift.totalamount || 0);
+      });
+      const at_normOnetime: ClassifiedDonor[] = [], at_medOnetime: ClassifiedDonor[] = [], at_majOnetime: ClassifiedDonor[] = [];
+      for (const donorId in allTimeOnetimeTotals) {
+          const donor = donorMap[donorId];
+          if (donor) {
+              const totalAmount = allTimeOnetimeTotals[donorId];
+              const classifiedDonor = { donor, amount: totalAmount };
+              if (totalAmount >= 1000) at_majOnetime.push(classifiedDonor);
+              else if (totalAmount >= 500) at_medOnetime.push(classifiedDonor);
+              else at_normOnetime.push(classifiedDonor);
+          }
+      }
+      setAllTimeNormalOnetime(at_normOnetime);
+      setAllTimeMediumOnetime(at_medOnetime);
+      setAllTimeMajorOnetime(at_majOnetime);
+
+      // Current-Year Monthly
+      const currentYearMonthlyAmounts: Record<string, number> = {};
+      currentYearGifts.filter(g => g.isrecurring && g.donorid).forEach(gift => {
+          currentYearMonthlyAmounts[gift.donorid] = gift.totalamount || 0;
+      });
+      const normMonthly: ClassifiedDonor[] = [], medMonthly: ClassifiedDonor[] = [], majMonthly: ClassifiedDonor[] = [];
+      for (const donorId in currentYearMonthlyAmounts) {
+          const donor = donorMap[donorId];
+          if (donor) {
+              const amount = currentYearMonthlyAmounts[donorId];
+              const classifiedDonor = { donor, amount };
+              if (amount >= 100) majMonthly.push(classifiedDonor);
+              else if (amount >= 50) medMonthly.push(classifiedDonor);
+              else normMonthly.push(classifiedDonor);
+          }
+      }
+      setNormalMonthly(normMonthly);
+      setMediumMonthly(medMonthly);
+      setMajorMonthly(majMonthly);
+
+       // Current-Year One-Time
+      const currentYearOnetimeTotals: Record<string, number> = {};
+      currentYearGifts.filter(g => !g.isrecurring && g.donorid).forEach(gift => { // The FIX is here
+          currentYearOnetimeTotals[gift.donorid] = (currentYearOnetimeTotals[gift.donorid] || 0) + (gift.totalamount || 0);
+      });
+      const normOnetime: ClassifiedDonor[] = [], medOnetime: ClassifiedDonor[] = [], majOnetime: ClassifiedDonor[] = [];
+      for (const donorId in currentYearOnetimeTotals) {
+          const donor = donorMap[donorId];
+          if (donor) {
+              const totalAmount = currentYearOnetimeTotals[donorId];
+              const classifiedDonor = { donor, amount: totalAmount };
+              if (totalAmount >= 1000) majOnetime.push(classifiedDonor);
+              else if (totalAmount >= 500) medOnetime.push(classifiedDonor);
+              else normOnetime.push(classifiedDonor);
+          }
+      }
+      setNormalOnetime(normOnetime);
+      setMediumOnetime(medOnetime);
+      setMajorOnetime(majOnetime);
+
+      //TOP 20 DONORS
+      const aggregateAndSort = (totals: Record<string, number>, type: "Recurring" | "One-Time"): TopDonorInfo[] => {
+          return Object.entries(totals)
+              .map(([donorId, totalAmount]) => ({ donor: donorMap[donorId], totalAmount, type }))
+              .filter(item => item.donor)
+              .sort((a, b) => b.totalAmount - a.totalAmount)
+              .slice(0, 20);
+      };
+      setTopRecurringDonors(aggregateAndSort(currentYearMonthlyAmounts, "Recurring"));
+      setTopNonRecurringDonors(aggregateAndSort(currentYearOnetimeTotals, "One-Time"));
+
+
+      //  CHURN CALCULATIONS 
+      const allTimeMajorMonthlyIds = new Set(at_majMonthly.map(d => d.donor.donorid));
+      const currentYearMajorMonthlyIds = new Set(majMonthly.map(d => d.donor.donorid));
+      const churnedMonthlyList: ChurnedDonorInfo[] = [];
+      //  Churned from Major Monthly Status (New 3-Month Inactivity Rule) 
+
+      const donorsWhoGaveThisYear = new Set(
+          currentYearGifts.map(g => g.donorid)
+      );
+      
+            allTimeMajorMonthlyIds.forEach(donorId => {
+          // A donor has churned if they are an all-time major monthly donor
+          // AND their ID is NOT in the set of donors who gave this year.
+          if (!donorsWhoGaveThisYear.has(donorId)) {
+              const donor = donorMap[donorId];
+              if (donor) {
+                  churnedMonthlyList.push({
+                      donor: donor,
+                      lifetimeTotal: lifetimeTotals[donorId] || 0,
+                      lastGiftDate: lastGiftDates[donorId] || 'N/A',
+                      lastRecurringAmount: lastRecurringGiftDetails[donorId]?.amount || 0,
+                      lastRecurringDate: lastRecurringGiftDetails[donorId]?.date.toISOString(),
+                  });
+              }
+          }
+      });
+      setChurnedMonthlyMajor(churnedMonthlyList.sort((a, b) => b.lifetimeTotal - a.lifetimeTotal));
+
+      //  Churned from Major One-Time Status (Status Drop Rule) 
+      // This logic remains unchanged for now.
+      const allTimeMajorOnetimeIds = new Set(at_majOnetime.map(d => d.donor.donorid));
+      const currentYearMajorOnetimeIds = new Set(majOnetime.map(d => d.donor.donorid));
+      const churnedOnetimeList: ChurnedDonorInfo[] = [];
+      
+      allTimeMajorOnetimeIds.forEach(donorId => {
+          if (!currentYearMajorOnetimeIds.has(donorId)) {
+              const donor = donorMap[donorId];
+              if (donor) {
+                  churnedOnetimeList.push({
+                      donor: donor,
+                      lifetimeTotal: lifetimeTotals[donorId] || 0,
+                      lastGiftDate: lastGiftDates[donorId] || 'N/A',
+                  });
+              }
+          }
+      });
+
+
+      //  CONTRIBUTION CALCULATIONS 
+      const combinedCurrentYearMajorIds = new Set([...currentYearMajorMonthlyIds, ...currentYearMajorOnetimeIds]);
+      const totalDonationsThisYear = currentYearGifts.reduce((acc, gift) => acc + (gift.totalamount || 0), 0);
+      const majorDonationsThisYear = currentYearGifts
+          .filter(gift => gift.donorid && combinedCurrentYearMajorIds.has(gift.donorid))
+          .reduce((acc, gift) => acc + (gift.totalamount || 0), 0);
+      const percentage = totalDonationsThisYear > 0 ? (majorDonationsThisYear / totalDonationsThisYear) * 100 : 0;
+      const amountString = `${formatAmount(majorDonationsThisYear)} of ${formatAmount(totalDonationsThisYear)}`;
+      setMajorDonorContributionAmount(amountString);
+      setMajorDonorContributionPercentage(percentage);
+
+      const contributorsList: ContributionListItem[] = [];
+      combinedCurrentYearMajorIds.forEach(donorId => {
+          const donor = donorMap[donorId];
+          if (donor) {
+              const totalContribution = currentYearGifts
+                  .filter(g => g.donorid === donorId)
+                  .reduce((acc, gift) => acc + (gift.totalamount || 0), 0);
+
+              contributorsList.push({
+                  donor,
+                  totalContribution,
+              });
+          }
+      });
+      setMajorContributorsList(contributorsList.sort((a, b) => b.totalContribution - a.totalContribution));
+
+      //  RETENTION CALCULATIONS 
+
+      // First, find who was a Major Monthly Donor LAST year (2024)
+      const previousYear = currentYear - 1;
+      const previousYearGifts = gifts.filter(g => g.giftdate && g.giftdate.startsWith(previousYear.toString()));
+      const previousYearMonthlyAmounts: Record<string, number> = {};
+      previousYearGifts.filter(g => g.isrecurring).forEach(gift => {
+          if (gift.donorid) previousYearMonthlyAmounts[gift.donorid] = gift.totalamount || 0;
+      });
+      const previousYearMajorMonthlyIds = new Set<string>();
+      for (const donorId in previousYearMonthlyAmounts) {
+          if (previousYearMonthlyAmounts[donorId] >= 100) {
+              previousYearMajorMonthlyIds.add(donorId);
+          }
+      }
+
+      // Now, find the donors who are in BOTH last year's set and this year's set
+      const retainedList: ClassifiedDonor[] = [];
+      // We reuse 'currentYearMajorMonthlyIds' from the classification logic
+      currentYearMajorMonthlyIds.forEach(donorId => {
+          if (previousYearMajorMonthlyIds.has(donorId)) {
+              const donor = donorMap[donorId];
+              if (donor) {
+                  // The amount shown will be their CURRENT monthly amount
+                  retainedList.push({
+                      donor,
+                      amount: currentYearMonthlyAmounts[donorId] || 0
+                  });
+              }
+          }
+      });
+      setRetainedMajorMonthly(retainedList.sort((a,b) => b.amount - a.amount));
+
+      //17. DLV STUFF WOOOO
+
+      // Function to calculate DLV for a given cohort of donors
+            // Function to calculate DLV for a given cohort of donors
+      const calculateDLV = (donorIds: Set<string>) => {
+        if (donorIds.size === 0) return { finalDLV: 0, cohortList: [], components: { amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 } };
+
+        const cohortGifts = gifts.filter(g => g.donorid && donorIds.has(g.donorid));
+        if (cohortGifts.length === 0) return { finalDLV: 0, cohortList: [], components: { amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 } };
+
+        //  Calculation for DLV Components 
+        const totalAmount = cohortGifts.reduce((acc, g) => acc + (g.totalamount || 0), 0);
+        const avgAmount = totalAmount / cohortGifts.length; // Avg. per transaction
+
+        // ADDED: The metric you are looking for
+        const avgLifetimeTotal = totalAmount / donorIds.size; // Avg. total giving per donor
+
+        // ... (rest of lifespan and frequency calculations remain the same) ...
+        const giftsByDonor: Record<string, Date[]> = {};
+        cohortGifts.forEach(g => {
+            if (g.donorid && g.giftdate) {
+                if (!giftsByDonor[g.donorid]) giftsByDonor[g.donorid] = [];
+                giftsByDonor[g.donorid].push(new Date(g.giftdate));
+            }
+        });
+        let totalLifespanYears = 0;
+        for (const id in giftsByDonor) {
+            const dates = giftsByDonor[id];
+            if (dates.length > 1) {
+                const first = new Date(Math.min(...dates.map(d => d.getTime())));
+                const last = new Date(Math.max(...dates.map(d => d.getTime())));
+                totalLifespanYears += (last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+            }
+        }
+        const avgLifespan = totalLifespanYears / donorIds.size;
+
+        const allGiftDates = gifts
+          .filter(g => g.giftdate !== undefined)
+          .map(g => new Date(g.giftdate as string));
+        const orgStartDate = new Date(Math.min(...allGiftDates.map(d => d.getTime())));
+        const orgEndDate = new Date(Math.max(...allGiftDates.map(d => d.getTime())));
+        const orgTotalYears = Math.max(1, (orgEndDate.getTime() - orgStartDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+        const avgFrequency = cohortGifts.length / donorIds.size / orgTotalYears;
+        
+        const finalDLV = avgAmount * avgFrequency * avgLifespan;
+
+        //  Build cohort list for the modal 
+        const cohortList: ContributionListItem[] = [];
+        donorIds.forEach(donorId => {
+            const donor = donorMap[donorId];
+            if (donor) {
+              cohortList.push({ donor, totalContribution: lifetimeTotals[donorId] || 0 });
+            }
         });
 
-        setLastGiftDates(lastGiftDates);
+        // Return all calculated values
+        return { 
+          finalDLV, 
+          cohortList: cohortList.sort((a, b) => b.totalContribution - a.totalContribution),
+          components: { amount: avgAmount, frequency: avgFrequency, lifespan: avgLifespan, avgLifetimeTotal: avgLifetimeTotal } 
+        };
+      };
 
+      //  Calculate for Monthly Major Donors 
+      const monthlyResult = calculateDLV(allTimeMajorMonthlyIds);
+      setMonthlyMajorDLV(monthlyResult.finalDLV);
+      setMonthlyDlvCohort(monthlyResult.cohortList);
+      setMonthlyDlvComponents(monthlyResult.components); // Save components to state
+
+      //  Calculate for One-Time Major Donors 
+      const onetimeResult = calculateDLV(allTimeMajorOnetimeIds);
+      setOnetimeMajorDLV(onetimeResult.finalDLV);
+      setOnetimeDlvCohort(onetimeResult.cohortList);
+      setOnetimeDlvComponents(onetimeResult.components); // Save components to state
 
         setMetrics({
           newDonorsLastMonth: newDonors.length,
@@ -409,21 +798,384 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   if (isLoading) return <p>Loading metrics...</p>;
   if (error) return <p>Error loading metrics: {error}</p>;
 
-  const donorInitials = (donor?: DonorData | null) =>
-    donor ? `${donor.firstname?.[0] || ''}${donor.lastname?.[0] || ''}` : '—';
 
-  const donorFullName = (donor?: DonorData | null) =>
-    donor ? `${donor.firstname || ''} ${donor.lastname || ''}`.trim() : '';
 
-  const formatDate = (date?: string) => {
-    if (!date) return '';
-    const d = new Date(date);
-    d.setDate(d.getDate() + 1);
-    return d.toLocaleDateString();
-  };
 
-  const formatAmount = (amount?: number) =>
-    amount !== undefined ? `$${amount.toFixed(2)}` : '';
+  const metricDefinitions = [
+    {
+      id: 'totalDonationsAllTime',
+      title: 'Total Donations (All-Time)',
+      value: formatAmount(totalDonationsAllTime),
+      icon: faPiggyBank, 
+      variant: 'primary',
+      subtitle: 'Accumulated from all gifts',
+      categories: ['All-Time Classifications'],
+    },
+    {
+    id: 'newDonors',
+    title: 'New Donors (Last 30 Days)',
+    value: metrics.newDonorsLastMonth,
+    icon: faUserPlus,
+    variant: 'primary',
+    onClick: () => openModal('newDonors'),
+    subtitle: 'Click to view list',
+    categories: ['Current Year Metrics'],
+  },
+  {
+    id: 'recurringDonors',
+    title: 'Recurring Donors (Last 30 Days)',
+    value: metrics.recurringDonorsLastMonth,
+    icon: faCalendarAlt,
+    variant: 'success',
+    onClick: () => openModal('recurringDonors'),
+    subtitle: 'Click to view IDs',
+    categories: ['Current Year Metrics', 'Donor Classifications'],
+  },
+  {
+    id: 'medianDonation',
+    title: 'Median Donation (Last 30 Days)',
+    value: metrics.medianDonation,
+    icon: faChartLine,
+    variant: 'warning',
+    onClick: () => openModal('medianDonation'),
+    subtitle: 'Click to view details',
+    categories: ['Current Year Metrics'],
+  },
+  {
+    id: 'wma',
+    title: '30-Day WMA Donations',
+    value: metrics.weightedMovingAvg,
+    icon: faPercent,
+    variant: 'dark',
+    onClick: () => openModal('wma'),
+    subtitle: 'Click to view breakdown',
+    categories: ['Current Year Metrics'],
+  },
+  {
+    id: 'recAboveMedian',
+    title: '> Median & Recurring (1mo)',
+    value: metrics.recAboveMedian1mo,
+    icon: faArrowUp,
+    variant: 'success',
+    onClick: () => openModal('recAboveMedian'),
+    subtitle: 'Click to view',
+    categories: ['Median Analysis'],
+  },
+  {
+    id: 'recBelowMedian',
+    title: '≤ Median & Recurring (1mo)',
+    value: metrics.recBelowMedian1mo,
+    icon: faArrowDown,
+    variant: 'info',
+    onClick: () => openModal('recBelowMedian'),
+    subtitle: 'Click to view',
+    categories: ['Median Analysis'],
+  },
+  {
+    id: 'nonRecAboveMedian',
+    title: '> Median & Non-Recurring (1mo)',
+    value: metrics.nonRecAboveMedian1mo,
+    icon: faArrowUpRightDots,
+    variant: 'warning',
+    onClick: () => openModal('nonRecAboveMedian'),
+    subtitle: 'Click to view',
+    categories: ['Median Analysis'],
+  },
+  {
+    id: 'nonRecBelowMedian',
+    title: '≤ Median & Non-Recurring (1mo)',
+    value: metrics.nonRecBelowMedian1mo,
+    icon: faArrowDownShortWide,
+    variant: 'secondary',
+    onClick: () => openModal('nonRecBelowMedian'),
+    subtitle: 'Click to view',
+    categories: ['Median Analysis'],
+  },
+  {
+    id: 'recAboveWMA',
+    title: '> WMA & Recurring (1mo)',
+    value: metrics.recAboveWMA1mo,
+    icon: faArrowTrendUp,
+    variant: 'success',
+    onClick: () => openModal('recAboveWMA'),
+    subtitle: 'Click to view',
+    categories: ['WMA Analysis'],
+  },
+  {
+    id: 'recBelowWMA',
+    title: '≤ WMA & Recurring (1mo)',
+    value: metrics.recBelowWMA1mo,
+    icon: faArrowTrendDown,
+    variant: 'info',
+    onClick: () => openModal('recBelowWMA'),
+    subtitle: 'Click to view',
+    categories: ['WMA Analysis'],
+  },
+  {
+    id: 'nonRecAboveWMA',
+    title: '> WMA & Non-Recurring (1mo)',
+    value: metrics.nonRecAboveWMA1mo,
+    icon: faArrowUpRightDots,
+    variant: 'warning',
+    onClick: () => openModal('nonRecAboveWMA'),
+    subtitle: 'Click to view',
+    categories: ['WMA Analysis'],
+  },
+  {
+    id: 'nonRecBelowWMA',
+    title: '≤ WMA & Non-Recurring (1mo)',
+    value: metrics.nonRecBelowWMA1mo,
+    icon: faArrowDownShortWide,
+    variant: 'secondary',
+    onClick: () => openModal('nonRecBelowWMA'),
+    subtitle: 'Click to view',
+    categories: ['WMA Analysis'],
+  },
+  {
+    id: 'activeDonors',
+    title: 'Active Donors (Last 3 Months)',
+    value: metrics.activeDonorsLast3mo,
+    icon: faUserPlus,
+    variant: 'info',
+    onClick: () => openModal('activeDonors'),
+    subtitle: 'Click to view list',
+    categories: ['Current Year Metrics'],
+  },
+  {
+    id: 'recurringRatio',
+    title: 'Recurring Value Ratio',
+    value: metrics.recurringDonationRatio !== undefined
+      ? `${metrics.recurringDonationRatio.toFixed(1)}%`
+      : 'N/A',
+    icon: faInfoCircle,
+    subtitle: 'Recurring share of total donation value',
+    categories: ['Current Year Metrics'],
+  },
+  {
+    id: 'churnedLarge',
+    title: 'Churned Large Donors',
+    value: metrics.churnedLargeDonors,
+    icon: faUserSlash,
+    variant: 'warning',
+    subtitle: 'Click to view list',
+    onClick: () => openModal('churnedLarge'),
+    categories: ['Top Donor Metrics'],
+  },
+  {
+    id: 'churnedMonthly',
+    title: 'Monthly Donors Who Churned',
+    value: metrics.monthlyDonorsWhoChurned,
+    icon: faUserSlash,
+    variant: 'warning',
+    onClick: () => openModal('churnedMonthly'),
+    subtitle: 'Click to view list',
+    categories: ['currentYearMetrics'],
+  },
+  {
+  id: 'top20Recurring',
+  title: 'Top 20 Recurring Donors (Current Year)',
+  value: topRecurringDonors.length,
+  icon: faCalendarAlt,
+  variant: 'success',
+  onClick: () => openModal('top20Recurring'),
+  subtitle: 'Click to view list',
+  categories: ['Top Donor Metrics'],
+},
+{
+  id: 'top20NonRecurring',
+  title: 'Top 20 One-Time Donors (Current Year)',
+  value: topNonRecurringDonors.length,
+  icon: faArrowUpRightDots,
+  variant: 'info',
+  onClick: () => openModal('top20NonRecurring'),
+  subtitle: 'Click to view list',
+  categories: ['Top Donor Metrics'],
+},
+{
+  id: 'majorDonorContribution',
+  title: 'Major Donor Contribution (YTD)',
+  value: `${majorDonorContributionPercentage.toFixed(1)}%`,
+  icon: faStar,
+  variant: 'primary',
+  subtitle: `${majorDonorContributionAmount} (Click to view)`,
+  onClick: () => openModal('majorDonorContribution'),
+  categories: ['Current Year Metrics', 'Donor Classifications'],
+},
+{
+  id: 'majorMonthly', 
+  title: 'Major Monthly Donors (Year to date)', 
+  value: majorMonthly.length, 
+  icon: faUserCheck, 
+  variant: 'success',
+  onClick: () => openModal('majorMonthly'), 
+  subtitle: '$100+/mo', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'mediumMonthly', 
+  title: 'Medium Monthly Donors (Year to date)', 
+  value: mediumMonthly.length, 
+  icon: faUserFriends, 
+  variant: 'primary',
+  onClick: () => openModal('mediumMonthly'), 
+  subtitle: '$50-100/mo', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'normalMonthly', 
+  title: 'Normal Monthly Donors (Year to date)', 
+  value: normalMonthly.length, 
+  icon: faUser, 
+  variant: 'secondary',
+  onClick: () => openModal('normalMonthly'), 
+  subtitle: '< $50/mo', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'majorOnetime', 
+  title: 'Major One-Time Donors (Year to date)', 
+  value: majorOnetime.length, 
+  icon: faUserTie, 
+  variant: 'success',
+  onClick: () => openModal('majorOnetime'), 
+  subtitle: '$1,000+', 
+  categories: ['Donor Classifications'],
+},
+
+{
+  id: 'mediumOnetime', 
+  title: 'Medium One-Time Donors (Year to date)', 
+  value: mediumOnetime.length, 
+  icon: faUserEdit, 
+  variant: 'primary',
+  onClick: () => openModal('mediumOnetime'), 
+  subtitle: '$500-1,000', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'normalOnetime', 
+  title: 'Normal One-Time Donors (Year to date)', 
+  value: normalOnetime.length, 
+  icon: faUser, 
+  variant: 'secondary',
+  onClick: () => openModal('normalOnetime'), 
+  subtitle: '< $500', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'allTimeMajorMonthly', 
+  title: 'Major Monthly Donors (All-Time)', 
+  value: allTimeMajorMonthly.length, 
+  icon: faUserCheck, 
+  variant: 'dark',
+  onClick: () => openModal('allTimeMajorMonthly'), 
+  subtitle: '$100+/mo', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'allTimeMediumMonthly', 
+  title: 'Medium Monthly Donors (All-Time)', 
+  value: allTimeMediumMonthly.length, 
+  icon: faUserFriends, 
+  variant: 'dark',
+  onClick: () => openModal('allTimeMediumMonthly'), 
+  subtitle: '$50-100/mo', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'allTimeNormalMonthly', 
+  title: 'Normal Monthly Donors (All-Time)', 
+  value: allTimeNormalMonthly.length, 
+  icon: faUser, 
+  variant: 'dark',
+  onClick: () => openModal('allTimeNormalMonthly'), 
+  subtitle: '< $50/mo', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'allTimeMajorOnetime', 
+  title: 'Major One-Time Donors (All-Time)', 
+  value: allTimeMajorOnetime.length, 
+  icon: faUserTie, 
+  variant: 'dark',
+  onClick: () => openModal('allTimeMajorOnetime'), 
+  subtitle: '$1,000+', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'allTimeMediumOnetime', 
+  title: 'Medium One-Time Donors (All-Time)', 
+  value: allTimeMediumOnetime.length, 
+  icon: faUserEdit, 
+  variant: 'dark',
+  onClick: () => openModal('allTimeMediumOnetime'), 
+  subtitle: '$500-1,000', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'allTimeNormalOnetime', 
+  title: 'Normal One-Time Donors (All-Time)', 
+  value: allTimeNormalOnetime.length, 
+  icon: faUser, 
+  variant: 'dark',
+  onClick: () => openModal('allTimeNormalOnetime'), 
+  subtitle: '< $500', 
+  categories: ['Donor Classifications'],
+},
+{
+  id: 'churnedMajorMonthly',
+  title: 'Churned Major Monthly Donors (Year To Date)',
+  value: churnedMonthlyMajor.length, 
+  icon: faUserSlash,
+  variant: 'danger',
+  onClick: () => openModal('churnedMajorMonthly'), 
+  subtitle: 'All-Time Major Monthly not currently in tier',
+  categories: ['Retention & Churn'],
+},
+{
+  id: 'retainedMajorMonthly',
+  title: 'Retained Major Monthly Donors',
+  value: retainedMajorMonthly.length,
+  icon: faUserCheck,
+  variant: 'success',
+  onClick: () => openModal('retainedMajorMonthly'),
+  subtitle: 'Major Monthly in 2024 & 2025',
+  categories: ['Retention & Churn'],
+},
+{
+  id: 'monthlyMajorDLV',
+  title: 'Avg. Monthly Major Donor DLV',
+  value: formatAmount(monthlyMajorDLV),
+  icon: faGem,
+  variant: 'success',
+  subtitle: 'Predicted value (Click to view cohort)',
+  onClick: () => openModal('monthlyMajorDLV'),
+  categories: ['Lifetime Value'],
+},
+{
+  id: 'onetimeMajorDLV',
+  title: 'Avg. One-Time Major Donor DLV',
+  value: formatAmount(onetimeMajorDLV),
+  icon: faGem,
+  variant: 'info',
+  subtitle: 'Predicted value (Click to view cohort)',
+  onClick: () => openModal('onetimeMajorDLV'),
+  categories: ['Lifetime Value'],
+},
+  ];
+
+    const filteredMetrics = metricDefinitions
+      .filter(metric => 
+        activeFilter === 'All Metrics' || metric.categories.includes(activeFilter)
+      )
+      .filter(metric => {
+        if (!searchTerm) return true; 
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+        return metric.title.toLowerCase().includes(lowerCaseSearchTerm);
+      });
+
+
 
   return (
     <div className="content-body metrics-container">
@@ -432,581 +1184,177 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         <p className="manager-description">Overview of donor categories and key counts.</p>
       </div>
 
-      <div className="stat-cards-grid">
-        <StatCard
-          title="New Donors (Last 30 Days)"
-          value={metrics.newDonorsLastMonth}
-          icon={faUserPlus}
-          variant="primary"
-          onClick={() => setShowNew(p => !p)}
-          subtitle="Click to view list"
-        />
-        <StatCard
-          title="Recurring Donors (Last 30 Days)"
-          value={metrics.recurringDonorsLastMonth}
-          icon={faCalendarAlt}
-          variant="success"
-          onClick={() => setShowRecurring(p => !p)}
-          subtitle="Click to view IDs"
-        />
-        <StatCard
-          title="Median Donation (Last 30 Days)"
-          value={metrics.medianDonation}
-          icon={faChartLine}
-          variant="warning"
-          onClick={() => setShowStats(p => !p)}
-          subtitle="Click to view details"
-        />
-        <StatCard
-          title="30-Day WMA Donations"
-          value={metrics.weightedMovingAvg}
-          icon={faPercent}
-          variant="dark"
-          onClick={() => setShowWMA(p => !p)}
-          subtitle="Click to view breakdown"
-        />
-        <StatCard
-          title="> Median & Recurring (1mo)"
-          value={metrics.recAboveMedian1mo}
-          icon={faArrowUp}
-          variant="success"
-          onClick={() => setShowRecAbove(p => !p)}
-          subtitle="Click to view"
-        />
-        <StatCard
-          title="≤ Median & Recurring (1mo)"
-          value={metrics.recBelowMedian1mo}
-          icon={faArrowDown}
-          variant="info"
-          onClick={() => setShowRecBelow(p => !p)}
-          subtitle="Click to view"
-        />
-        <StatCard
-          title="> Median & Non-Recurring (1mo)"
-          value={metrics.nonRecAboveMedian1mo}
-          icon={faArrowUpRightDots}
-          variant="warning"
-          onClick={() => setShowNonRecAbove(p => !p)}
-          subtitle="Click to view"
-        />
-        <StatCard
-          title="≤ Median & Non-Recurring (1mo)"
-          value={metrics.nonRecBelowMedian1mo}
-          icon={faArrowDownShortWide}
-          variant="secondary"
-          onClick={() => setShowNonRecBelow(p => !p)}
-          subtitle="Click to view"
-        />
-        <StatCard
-          title="> WMA & Recurring (1mo)"
-          value={metrics.recAboveWMA1mo}
-          icon={faArrowTrendUp}
-          variant="success"
-          onClick={() => setShowWMARecAbove(p => !p)}
-          subtitle="Click to view"
-        />
-        <StatCard
-          title="≤ WMA & Recurring (1mo)"
-          value={metrics.recBelowWMA1mo}
-          icon={faArrowTrendDown}
-          variant="info"
-          onClick={() => setShowWMARecBelow(p => !p)}
-          subtitle="Click to view"
-        />
-        <StatCard
-          title="> WMA & Non-Recurring (1mo)"
-          value={metrics.nonRecAboveWMA1mo}
-          icon={faArrowUpRightDots}
-          variant="warning"
-          onClick={() => setShowWMANonRecAbove(p => !p)}
-          subtitle="Click to view"
-        />
-        <StatCard
-          title="≤ WMA & Non-Recurring (1mo)"
-          value={metrics.nonRecBelowWMA1mo}
-          icon={faArrowDownShortWide}
-          variant="secondary"
-          onClick={() => setShowWMANonRecBelow(p => !p)}
-          subtitle="Click to view"
-        />
-        <StatCard
-          title="Active Donors (Last 3 Months)"
-          value={metrics.activeDonorsLast3mo}
-          icon={faUserPlus}
-          variant="info"
-          onClick={() => setShowActive(prev => !prev)}
-          subtitle="Click to view list"
-        />
-        <StatCard
-          title="Recurring Value Ratio"
-          value={metrics.recurringDonationRatio !== undefined ? `${metrics.recurringDonationRatio.toFixed(1)}%`: 'N/A'}
-          subtitle="Recurring share of total donation value"
-          icon={faInfoCircle}
-          />
-        <StatCard
-          title="Churned Large Donors"
-          value={metrics.churnedLargeDonors}
-          icon={faUserSlash}
-          variant="warning"
-          subtitle="Click to view list"
-          onClick={() => setShowChurnedLarge(p => !p)}
-        />
-        <StatCard
-          title="Monthly Donors Who Churned"
-          value={metrics.monthlyDonorsWhoChurned}
-          icon={faUserSlash}
-          variant="warning"
-          onClick={() => setShowChurned(prev => !prev)}
-          subtitle="Click to view list"
-        />
+      <Controls
+        filterOptions={{
+          defaultOption: 'All Metrics',
+          options: [
+            'All Metrics', 'Top Donor Metrics', 'Current Year Metrics', 
+            'Donor Classifications', 
+            'Retention & Churn', 'Lifetime Value'
+          ]
+        }}
+        onFilterChange={handleFilterChange}
+        searchPlaceholder="Search metrics..."
+        onSearch={setSearchTerm}
+        primaryButtonLabel=""
+        secondaryButtonLabel=""
+        showSecondaryButton={false}
+      />
 
+        <div className="metrics-display-area">
+        {activeFilter === 'Donor Classifications' || activeFilter === 'All-Time Classifications' ? (
+          <div className="grouped-grid-view">
+            {(['Major', 'Medium', 'Normal']).map(tier => {
+              const allTierCards = filteredMetrics.filter(m => m.title.includes(tier));
+              if (allTierCards.length === 0) return null;
 
-      </div>
+              // Split cards into "All-Time" and "1 Year" (YTD) groups
+              const oneYearCards = allTierCards.filter(m => !m.title.includes('All-Time'));
+              const allTimeCards = allTierCards.filter(m => m.title.includes('All-Time'));
 
+              return (
+                <div key={tier} className="classification-tier">
+                  <h3 className="classification-header">{tier} Donors</h3>
+                  
+                  {/*  1 Year Sub-section  */}
+                  {oneYearCards.length > 0 && (
+                    <>
+                      <h4 className="classification-subheader">1 Year</h4>
+                      <div className="stat-cards-grid">
+                        {oneYearCards.map(metric => (
+                          <StatCard key={metric.id} {...metric as any} />
+                        ))}
+                      </div>
+                    </>
+                  )}
 
-      {showNew && (
-        <div className="top-list-card top-list-card-info">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faUserPlus} />
-            </div>
-            <h3 className="top-list-title">New Donors (Last 30 Days)</h3>
-          </div>
-          <div className="top-list-content">
-            {newDonorsList.length === 0 ? (
-              <div className="top-list-empty">No new donors in the last 30 days.</div>
-            ) : (
-              <ul className="top-list">
-                {newDonorsList.map((d, i) => (
-                  <li key={d.donorid} className="top-list-item">
-                    <div className="top-list-rank">{i + 1}</div>
-                    <div className="top-list-avatar">{donorInitials(d)}</div>
-                    <div className="top-list-details">{donorFullName(d)}</div>
-                    <div className="top-list-secondary">{formatDate(d.created_at)}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-
-      {showRecurring && (
-        <div className="top-list-card top-list-card-success">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faCalendarAlt} />
-            </div>
-            <h3 className="top-list-title">Recurring Donations (Last 30 Days)</h3>
-          </div>
-          <div className="top-list-content">
-            {recurringGiftsMonth.length === 0 ? (
-              <div className="top-list-empty">No recurring gifts in the last month.</div>
-            ) : (
-              <ul className="top-list">
-                {recurringGiftsMonth.map((g, i) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{i + 1}</div>
-                    <div className="top-list-avatar">{donorInitials(g.donor)}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-
-      {showStats && (
-        <div className="top-list-card top-list-card-warning">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faChartLine} />
-            </div>
-            <h3 className="top-list-title">All Donations (Last 30 Days)</h3>
-          </div>
-          <div className="top-list-content">
-            {medianIndex !== null && (
-              <p style={{ margin: '0 0 1rem' }}>
-                <strong>Median Position:</strong> Gift #{medianIndex + 1}
-              </p>
-            )}
-            <p style={{ margin: '0 0 1rem' }}>
-              <strong>Computed Median:</strong> {formatAmount(metrics.medianDonation)}
-            </p>
-            <ul className="top-list">
-              {rawDonationsList.map((g, idx) => (
-                <li key={g.giftid} className="top-list-item">
-                  <div className="top-list-rank">{idx + 1}</div>
-                  <div className="top-list-avatar">{donorInitials(g.donor)}</div>
-                  <div className="top-list-details">
-                    Gift ID {g.giftid}
-                    <br />
-                    {donorFullName(g.donor)}
-                  </div>
-                  <div className="top-list-secondary">
-                    {formatAmount(g.totalamount)}
-                    <br />
-                    {formatDate(g.giftdate)}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {showWMA && (
-        <div className="top-list-card top-list-card-warning">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faChartLine} />
-            </div>
-            <h3 className="top-list-title">30‑Day Weighted Moving Average Breakdown</h3>
-          </div>
-          <div className="top-list-content">
-            {wmaDetails.length === 0 ? (
-              <div className="top-list-empty">No data available for WMA.</div>
-            ) : (
-              <ul className="top-list">
-                {wmaDetails.map(({ monthLabel, total, weight }, i) => (
-                  <li key={monthLabel} className="top-list-item">
-                    <div className="top-list-rank">{i + 1}</div>
-                    <div className="top-list-details">
-                      {monthLabel}: {formatAmount(total)} × {weight}
-                    </div>
-                    <div className="top-list-secondary">
-                      = <strong>{formatAmount(total * weight)}</strong>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p style={{ marginTop: '1em', fontWeight: 'bold' }}>
-              Final WMA: {formatAmount(metrics.weightedMovingAvg)}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {showRecAbove && (
-        <div className="top-list-card top-list-card-success">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faArrowUp} />
-            </div>
-            <h3 className="top-list-title">&gt; Median & Recurring (1mo)</h3>
-          </div>
-          <div className="top-list-content">
-            <ol className="top-list">
-              {rawDonationsList
-                .filter(g => g.isrecurring && g.totalamount! > metrics.medianDonation)
-                .map((g, idx) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{idx + 1}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-            </ol>
-          </div>
-        </div>
-      )}
-
-      {showRecBelow && (
-        <div className="top-list-card top-list-card-warning">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faArrowDown} />
-            </div>
-            <h3 className="top-list-title">≤ Median & Recurring (1mo)</h3>
-          </div>
-          <div className="top-list-content">
-            <ol className="top-list">
-              {rawDonationsList
-                .filter(g => g.isrecurring && g.totalamount! <= metrics.medianDonation)
-                .map((g, idx) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{idx + 1}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-            </ol>
-          </div>
-        </div>
-      )}
-
-      {showNonRecAbove && (
-        <div className="top-list-card top-list-card-info">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faArrowUpRightDots} />
-            </div>
-            <h3 className="top-list-title">&gt; Median & Non‑Recurring (1mo)</h3>
-          </div>
-          <div className="top-list-content">
-            <ol className="top-list">
-              {rawDonationsList
-                .filter(g => !g.isrecurring && g.totalamount! > metrics.medianDonation)
-                .map((g, idx) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{idx + 1}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-            </ol>
-          </div>
-        </div>
-      )}
-
-      {showNonRecBelow && (
-        <div className="top-list-card top-list-card-danger">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faArrowDownShortWide} />
-            </div>
-            <h3 className="top-list-title">≤ Median & Non‑Recurring (1mo)</h3>
-          </div>
-          <div className="top-list-content">
-            <ol className="top-list">
-              {rawDonationsList
-                .filter(g => !g.isrecurring && g.totalamount! <= metrics.medianDonation)
-                .map((g, idx) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{idx + 1}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-            </ol>
-          </div>
-        </div>
-      )}
-
-      {showWMARecAbove && (
-        <div className="top-list-card top-list-card-success">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faArrowTrendUp} />
-            </div>
-            <h3 className="top-list-title">&gt; WMA & Recurring (1mo)</h3>
-          </div>
-          <div className="top-list-content">
-            <ol className="top-list">
-              {rawDonationsList
-                .filter(g => g.isrecurring && g.totalamount! > metrics.weightedMovingAvg)
-                .map((g, idx) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{idx + 1}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-            </ol>
-          </div>
-        </div>
-      )}
-      {showWMARecBelow && (
-        <div className="top-list-card top-list-card-info">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faArrowTrendDown} />
-            </div>
-            <h3 className="top-list-title">≤ WMA & Recurring (1mo)</h3>
-          </div>
-          <div className="top-list-content">
-            <ol className="top-list">
-              {rawDonationsList
-                .filter(g => g.isrecurring && g.totalamount! <= metrics.weightedMovingAvg)
-                .map((g, idx) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{idx + 1}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-            </ol>
-          </div>
-        </div>
-      )}
-      {showWMANonRecAbove && (
-        <div className="top-list-card top-list-card-warning">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faArrowUpRightDots} />
-            </div>
-            <h3 className="top-list-title">&gt; WMA & Non-Recurring (1mo)</h3>
-          </div>
-          <div className="top-list-content">
-            <ol className="top-list">
-              {rawDonationsList
-                .filter(g => !g.isrecurring && g.totalamount! > metrics.weightedMovingAvg)
-                .map((g, idx) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{idx + 1}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-            </ol>
-          </div>
-        </div>
-      )}
-
-      {showWMANonRecBelow && (
-        <div className="top-list-card top-list-card-secondary">
-          <div className="top-list-header">
-            <div className="top-list-icon">
-              <FontAwesomeIcon icon={faArrowDownShortWide} />
-            </div>
-            <h3 className="top-list-title">≤ WMA & Non-Recurring (1mo)</h3>
-          </div>
-          <div className="top-list-content">
-            <ol className="top-list">
-              {rawDonationsList
-                .filter(g => !g.isrecurring && g.totalamount! <= metrics.weightedMovingAvg)
-                .map((g, idx) => (
-                  <li key={g.giftid} className="top-list-item">
-                    <div className="top-list-rank">{idx + 1}</div>
-                    <div className="top-list-details">{donorFullName(g.donor)}</div>
-                    <div className="top-list-secondary">
-                      {formatAmount(g.totalamount)} on {formatDate(g.giftdate)}
-                    </div>
-                  </li>
-                ))}
-            </ol>
-          </div>
-        </div>
-      )}
-
-
-          {showActive && (
-      <div className="top-list-card top-list-card-info">
-        <div className="top-list-header">
-          <div className="top-list-icon">
-            <FontAwesomeIcon icon={faUserPlus} />
-          </div>
-          <h3 className="top-list-title">Active Donors (Last 3 Months)</h3>
-        </div>
-        <div className="top-list-content">
-          {activeDonorsList.length === 0 ? (
-            <div className="top-list-empty">
-              No donors gave more than once in the last 3 months.
-            </div>
-          ) : (
-            <ul className="top-list">
-            {activeDonorsList.map((d, i) => (
-              <li key={d.donorid} className="top-list-item">
-                <div className="top-list-rank">{i + 1}</div>
-                <div className="top-list-avatar">{donorInitials(d)}</div>
-                <div className="top-list-details">{donorFullName(d)}</div>
-                <div className="top-list-secondary">
-                  {counts3mo[d.donorid] || 0} gifts · {formatAmount(totals3mo[d.donorid])}
+                  {/*  All-Time Sub-section  */}
+                  {allTimeCards.length > 0 && (
+                    <>
+                      <h4 className="classification-subheader">All-Time</h4>
+                      <div className="stat-cards-grid">
+                        {allTimeCards.map(metric => (
+                          <StatCard key={metric.id} {...metric as any} />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
-              </li>
+              );
+            })}
+          </div>
+        ) : (
+          //  EXISTING GRID VIEW (for all other filters) 
+          <div className="stat-cards-grid">
+            {filteredMetrics.map((metric) => (
+              <StatCard key={metric.id} {...metric as any} />
             ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    )}
-
-            {showChurnedLarge && (
-          <div className="top-list-card top-list-card-danger">
-            <div className="top-list-header">
-              <div className="top-list-icon">
-                <FontAwesomeIcon icon={faUserSlash} />
-              </div>
-              <h3 className="top-list-title">
-                Large Donors (+1 Years Prior) but Churned
-              </h3>
-            </div>
-            <div className="top-list-content">
-              {churnedLargeDetails.length === 0 ? (
-                <div className="top-list-empty">
-                  No large donors have churned.
-                </div>
-              ) : (
-                <ul className="top-list">
-                  {churnedLargeDetails.map((item, i) => (
-                    <li key={item.donor.donorid} className="top-list-item">
-                      <div className="top-list-rank">{i + 1}</div>
-                      <div className="top-list-avatar">
-                        {donorInitials(item.donor)}
-                      </div>
-                      <div className="top-list-details">
-                        {donorFullName(item.donor)}
-                      </div>
-                      <div className="top-list-secondary">
-                        Prior‑years total: {formatAmount(item.priorYearSum)}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            {filteredMetrics.length === 0 && (
+              <p>No metrics available for "{activeFilter}" filter.</p>
+            )}
           </div>
-    )}
-
-              {showChurned && (
-      <div className="top-list-card top-list-card-warning">
-        <div className="top-list-header">
-          <div className="top-list-icon">
-            <FontAwesomeIcon icon={faUserSlash} />
-          </div>
-          <h3 className="top-list-title">Monthly Donors Who Churned (Over a Year Ago || 3 Months Span)</h3>
-        </div>
-        <div className="top-list-content">
-          {churnedDonorsList.length === 0 ? (
-            <div className="top-list-empty">No churned donors found.</div>
-          ) : (
-            <ul className="top-list">
-              {churnedDonorsList.map((d, i) => {
-                const lastDate = lastGiftDates[d.donorid];
-                return (
-                  <li key={d.donorid} className="top-list-item">
-                    <div className="top-list-rank">{i + 1}</div>
-                    <div className="top-list-avatar">{donorInitials(d)}</div>
-                    <div className="top-list-details">{donorFullName(d)}</div>
-                    <div className="top-list-secondary">
-                      {countsOld3mo[d.donorid] || 0} gifts · {formatAmount(totalsOld3mo[d.donorid])}
-                      {lastDate && (
-                        <span style={{ marginLeft: 10, fontStyle: "italic", color: "#555" }}>
-                          Last Gift: {new Date(lastDate.getTime() + 24 * 60 * 60 * 1000).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        )}
       </div>
-    )}
 
+       <Modal isOpen={isModalOpen} onClose={closeModal} title={metricDefinitions.find(m => m.id === modalContentId)?.title || 'Details'}>
+         {/* === Main Lists === */}
+         {/* New Donors (Last 30 Days) */}
+      {/* === Main Lists === */}
+        {modalContentId === 'newDonors' && (
+          <div className="top-list-content">
+            {newDonorsList.length === 0 ? (<div className="top-list-empty">No new donors in the last 30 days.</div>) : (<ul className="top-list">{newDonorsList.map((d, i) => (<li key={d.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(d)}</div><div className="top-list-details">{donorFullName(d)}</div><div className="top-list-secondary">{formatDate(d.created_at)}</div></li>))}</ul>)}
+          </div>
+        )}
+        {modalContentId === 'recurringDonors' && (
+          <div className="top-list-content">
+            {recurringGiftsMonth.length === 0 ? (<div className="top-list-empty">No recurring gifts in the last month.</div>) : (<ul className="top-list">{recurringGiftsMonth.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul>)}
+          </div>
+        )}
+        {modalContentId === 'activeDonors' && (
+           <div className="top-list-content">
+            {activeDonorsList.length === 0 ? (<div className="top-list-empty">No donors gave more than once in the last 3 months.</div>) : (<ul className="top-list">{activeDonorsList.map((d, i) => (<li key={d.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(d)}</div><div className="top-list-details">{donorFullName(d)}</div><div className="top-list-secondary">{counts3mo[d.donorid] || 0} gifts · {formatAmount(totals3mo[d.donorid])}</div></li>))}</ul>)}
+          </div>
+        )}
 
+        {/* === Median/WMA Detailed Breakdowns === */}
+        {modalContentId === 'medianDonation' && (
+           <div className="top-list-content">
+            {medianIndex !== null && (<p style={{ margin: '0 0 1rem' }}><strong>Median Position:</strong> Gift #{medianIndex + 1}</p>)}
+            <p style={{ margin: '0 0 1rem' }}><strong>Computed Median:</strong> {formatAmount(metrics.medianDonation)}</p>
+            <ul className="top-list">{rawDonationsList.map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">Gift ID {g.giftid}<br />{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)}<br />{formatDate(g.giftdate)}</div></li>))}</ul>
+          </div>
+        )}
+        {modalContentId === 'wma' && (
+          <div className="top-list-content">
+            {wmaDetails.length === 0 ? (<div className="top-list-empty">No data available for WMA.</div>) : (<ul className="top-list">{wmaDetails.map(({ monthLabel, total, weight }, i) => (<li key={monthLabel} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-details">{monthLabel}: {formatAmount(total)} × {weight}</div><div className="top-list-secondary">= <strong>{formatAmount(total * weight)}</strong></div></li>))}</ul>)}
+            <p style={{ marginTop: '1em', fontWeight: 'bold' }}>Final WMA: {formatAmount(metrics.weightedMovingAvg)}</p>
+          </div>
+        )}
+
+        {/* === Older Churn Metrics === */}
+        {modalContentId === 'churnedLarge' && (
+          <div className="top-list-content">
+            {churnedLargeDetails.length === 0 ? <div className="top-list-empty">No large donors have churned.</div> : <ul className="top-list">{churnedLargeDetails.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">Prior-years total: {formatAmount(item.priorYearSum)}</div></li>))}</ul>}
+          </div>
+        )}
+        {modalContentId === 'churnedMonthly' && (
+          <div className="top-list-content">
+            {churnedDonorsList.length === 0 ? <div className="top-list-empty">No churned donors found.</div> : <ul className="top-list">{churnedDonorsList.map((d, i) => { const lastDate = lastGiftDates[d.donorid]; return (<li key={d.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(d)}</div><div className="top-list-details">{donorFullName(d)}</div><div className="top-list-secondary">{countsOld3mo[d.donorid] || 0} gifts · {formatAmount(totalsOld3mo[d.donorid])}{lastDate && (<span style={{ marginLeft: 10, fontStyle: "italic", color: "#555" }}>Last Gift: {new Date(lastDate.getTime() + 24 * 60 * 60 * 1000).toLocaleDateString()}</span>)}</div></li>); })}</ul>}
+          </div>
+        )}
+        
+        {/* === Median/WMA Analysis Lists === */}
+        {modalContentId === 'recAboveMedian' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => g.isrecurring && g.totalamount! > metrics.medianDonation).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+        {modalContentId === 'recBelowMedian' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => g.isrecurring && g.totalamount! <= metrics.medianDonation).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+        {modalContentId === 'nonRecAboveMedian' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => !g.isrecurring && g.totalamount! > metrics.medianDonation).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+        {modalContentId === 'nonRecBelowMedian' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => !g.isrecurring && g.totalamount! <= metrics.medianDonation).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+        {modalContentId === 'recAboveWMA' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => g.isrecurring && g.totalamount! > metrics.weightedMovingAvg).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+        {modalContentId === 'recBelowWMA' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => g.isrecurring && g.totalamount! <= metrics.weightedMovingAvg).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+        {modalContentId === 'nonRecAboveWMA' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => !g.isrecurring && g.totalamount! > metrics.weightedMovingAvg).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+        {modalContentId === 'nonRecBelowWMA' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => !g.isrecurring && g.totalamount! <= metrics.weightedMovingAvg).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+
+        {/* === All of your custom lists === */}
+        {/* Note: I'm omitting the Normal/Medium lists for brevity, but you would add them here */}
+        {modalContentId === 'top20Recurring' && (<div className="top-list-content">{topRecurringDonors.length === 0 ? <div className="top-list-empty">No recurring donors this year.</div> : <ul className="top-list">{topRecurringDonors.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmount)}<br /><span style={{color: '#6c757d'}}>{item.type}</span></div></li>))}</ul>}</div>)}
+        {modalContentId === 'top20NonRecurring' && (<div className="top-list-content">{topNonRecurringDonors.length === 0 ? <div className="top-list-empty">No one-time donors this year.</div> : <ul className="top-list">{topNonRecurringDonors.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmount)}<br /><span style={{color: '#6c757d'}}>{item.type}</span></div></li>))}</ul>}</div>)}
+        {modalContentId === 'majorMonthly' && (<div className="top-list-content"><ul className="top-list">{majorMonthly.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
+        {modalContentId === 'majorOnetime' && (<div className="top-list-content"><ul className="top-list">{majorOnetime.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'allTimeMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{allTimeMajorMonthly.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>)}
+        {modalContentId === 'allTimeMajorOnetime' && (<div className="top-list-content"><ul className="top-list">{allTimeMajorOnetime.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'churnedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{churnedMonthlyMajor.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d'}}>Last Recurring Gift: {formatAmount(item.lastRecurringAmount)} on {formatDate(item.lastRecurringDate)}</span></div></li>))}</ul></div>)}
+        {modalContentId === 'retainedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{retainedMajorMonthly.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"> {donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
+        {modalContentId === 'majorDonorContribution' && (<div className="top-list-content"><ul className="top-list">{majorContributorsList.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
+        {modalContentId === 'monthlyMajorDLV' && (<div className="top-list-content"><div className="dlv-breakdown"><p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(monthlyDlvComponents.avgLifetimeTotal)}</p><p><strong>Average Donation Amount:</strong> {formatAmount(monthlyDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {monthlyDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {monthlyDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(monthlyDlvComponents.amount)} &times; {monthlyDlvComponents.frequency.toFixed(2)} &times; {monthlyDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(monthlyMajorDLV)}</strong></p></div><ul className="top-list">{monthlyDlvCohort.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
+        {modalContentId === 'onetimeMajorDLV' && (<div className="top-list-content"><div className="dlv-breakdown"><p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(onetimeDlvComponents.avgLifetimeTotal)}</p><p><strong>Average Donation Amount:</strong> {formatAmount(onetimeDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {onetimeDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {onetimeDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(onetimeDlvComponents.amount)} &times; {onetimeDlvComponents.frequency.toFixed(2)} &times; {onetimeDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(onetimeMajorDLV)}</strong></p></div><ul className="top-list">{onetimeDlvCohort.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
+
+        {modalContentId === 'mediumMonthly' && (
+          <div className="top-list-content"><ul className="top-list">{mediumMonthly.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>
+        )}
+        {modalContentId === 'normalMonthly' && (
+          <div className="top-list-content"><ul className="top-list">{normalMonthly.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>
+        )}
+        {modalContentId === 'mediumOnetime' && (
+          <div className="top-list-content"><ul className="top-list">{mediumOnetime.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>
+        )}
+        {modalContentId === 'normalOnetime' && (
+          <div className="top-list-content"><ul className="top-list">{normalOnetime.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>
+        )}
+
+        {modalContentId === 'allTimeMediumMonthly' && (
+          <div className="top-list-content"><ul className="top-list">{allTimeMediumMonthly.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>
+        )}
+        {modalContentId === 'allTimeNormalMonthly' && (
+          <div className="top-list-content"><ul className="top-list">{allTimeNormalMonthly.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>
+        )}
+        {modalContentId === 'allTimeMediumOnetime' && (
+          <div className="top-list-content"><ul className="top-list">{allTimeMediumOnetime.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>
+        )}
+        {modalContentId === 'allTimeNormalOnetime' && (
+          <div className="top-list-content"><ul className="top-list">{allTimeNormalOnetime.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>
+        )}
+      </Modal>
     </div>
-  );
-};
+      )}
 
 export default Metrics;
+
