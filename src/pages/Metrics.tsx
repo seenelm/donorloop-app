@@ -152,10 +152,6 @@ const Metrics: React.FC = () => {
   const [mediumMonthlyAllTime, setMediumMonthlyAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   const [normalMonthlyAllTime, setNormalMonthlyAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   
-  
-
-  const [counts3mo, setCounts3mo] = useState<Record<string, number>>({});
-  const [totals3mo, setTotals3mo] = useState<Record<string, number>>({});
   const [activeDonorsList, setActiveDonorsList] = useState<DonorData[]>([]);
   const [wmaDetails, setWmaDetails] = useState< { monthLabel: string; total: number; weight: number }[]>([]);
   const [churnedLargeDetails, setChurnedLargeDetails] = useState<{ donor: DonorData; priorYearSum: number }[] >([]);
@@ -393,8 +389,6 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
           .map(id => donorMap[id])
           .filter((d): d is DonorData => !!d);
 
-        setCounts3mo(counts3mo);
-        setTotals3mo(totals3mo);
         setActiveDonorsList(activeDonors);
 
         // 10. Large donors who gave any time before oneYearAgo, but nothing since:
@@ -462,7 +456,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
           }
 
           const churnedDonorIds = Object.entries(giftsByDonor)
-            .filter(([donorid, dates]) => hasActive3MonthWindow(dates))
+            .filter(([_, dates]) => hasActive3MonthWindow(dates))
             .map(([donorid]) => donorid)
             .filter(donorid => !activeDonorIds.includes(donorid));
 
@@ -508,7 +502,6 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
               }
           }
       });
-      const allTimeMonthlyIds = new Set(Object.keys(allTimeMonthlyDonations));
 
       //ALL-TIME DONOR CLASSIFICATION
 
