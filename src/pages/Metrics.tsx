@@ -1006,16 +1006,6 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     categories: ['WMA Analysis'],
   },
   {
-    id: 'activeDonors',
-    title: 'Active Donors (Last 3 Months)',
-    value: metrics.activeDonorsLast3mo,
-    icon: faUserPlus,
-    variant: 'info',
-    onClick: () => openModal('activeDonors'),
-    subtitle: 'Click to view list',
-    categories: ['Current Year Metrics'],
-  },
-  {
     id: 'recurringRatio',
     title: 'Recurring Value Ratio',
     value: metrics.recurringDonationRatio !== undefined
@@ -1503,11 +1493,6 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         {modalContentId === 'recurringDonors' && (
           <div className="top-list-content">
             {recurringGiftsMonth.length === 0 ? (<div className="top-list-empty">No recurring gifts in the last month.</div>) : (<ul className="top-list">{recurringGiftsMonth.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul>)}
-          </div>
-        )}
-        {modalContentId === 'activeDonors' && (
-           <div className="top-list-content">
-            {activeDonorsList.length === 0 ? (<div className="top-list-empty">No donors gave more than once in the last 3 months.</div>) : (<ul className="top-list">{activeDonorsList.map((d, i) => (<li key={d.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(d)}</div><div className="top-list-details">{donorFullName(d)}</div><div className="top-list-secondary">{counts3mo[d.donorid] || 0} gifts · {formatAmount(totals3mo[d.donorid])}</div></li>))}</ul>)}
           </div>
         )}
 
