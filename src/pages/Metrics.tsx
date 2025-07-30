@@ -883,7 +883,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       icon: faPiggyBank, 
       variant: 'primary',
       subtitle: 'Accumulated from all gifts',
-      categories: ['All-Time Classifications'],
+      categories: ['All-Time Classifications','Lifetime Value'],
     },
     {
     id: 'newDonors',
@@ -1064,16 +1064,6 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   onClick: () => openModal('top20NonRecurring'),
   subtitle: 'Click to view list',
   categories: ['Top Donor Metrics'],
-},
-{
-  id: 'majorDonorContribution',
-  title: 'Major Donor Contribution (YTD)',
-  value: `${majorDonorContributionPercentage.toFixed(1)}%`,
-  icon: faStar,
-  variant: 'primary',
-  subtitle: `${majorDonorContributionAmount} (Click to view)`,
-  onClick: () => openModal('majorDonorContribution'),
-  categories: ['Current Year Metrics', 'Donor Classifications'],
 },
 {
   id: 'majorMonthly', 
@@ -1568,7 +1558,6 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         {modalContentId === 'allTimeMajorOnetime' && (<div className="top-list-content"><ul className="top-list">{allTimeMajorOnetime.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
         {modalContentId === 'churnedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{churnedMonthlyMajor.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d'}}>Last Recurring Gift: {formatAmount(item.lastRecurringAmount)} on {formatDate(item.lastRecurringDate)}</span></div></li>))}</ul></div>)}
         {modalContentId === 'retainedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{retainedMajorMonthly.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"> {donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
-        {modalContentId === 'majorDonorContribution' && (<div className="top-list-content"><ul className="top-list">{majorContributorsList.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
         {modalContentId === 'monthlyMajorDLV' && (<div className="top-list-content"><div className="dlv-breakdown"><p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(monthlyDlvComponents.avgLifetimeTotal)}</p><p><strong>Average Donation Amount:</strong> {formatAmount(monthlyDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {monthlyDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {monthlyDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(monthlyDlvComponents.amount)} &times; {monthlyDlvComponents.frequency.toFixed(2)} &times; {monthlyDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(monthlyMajorDLV)}</strong></p></div><ul className="top-list">{monthlyDlvCohort.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
         {modalContentId === 'onetimeMajorDLV' && (<div className="top-list-content"><div className="dlv-breakdown"><p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(onetimeDlvComponents.avgLifetimeTotal)}</p><p><strong>Average Donation Amount:</strong> {formatAmount(onetimeDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {onetimeDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {onetimeDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(onetimeDlvComponents.amount)} &times; {onetimeDlvComponents.frequency.toFixed(2)} &times; {onetimeDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(onetimeMajorDLV)}</strong></p></div><ul className="top-list">{onetimeDlvCohort.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
 
