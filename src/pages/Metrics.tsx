@@ -23,10 +23,10 @@ import {
   faGift,
   faHandHoldingHeart,
   faDollarSign,
+  faChartPie,
 } from '@fortawesome/free-solid-svg-icons';
 import { fetchGifts, fetchDonors, type GiftData, type DonorData } from '../utils/supabaseClient';
 import StatCard from '../components/stats/StatCard';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Controls from '../components/controls/Controls';
 import './styles/metrics.css';
 import Modal from '../components/popup/modal'; // Adjust path as needed
@@ -109,6 +109,7 @@ const Metrics: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('All Metrics');
   const [searchTerm, setSearchTerm] = useState('');
+  const [donationTypeFilter, setDonationTypeFilter] = useState<'monthly' | 'one-time'>('monthly');
 
   const [newDonorsList, setNewDonorsList] = useState<DonorData[]>([]);
   const [recurringGiftsMonth, setRecurringGiftsMonth] = useState<GiftWithDonor[]>([]);
@@ -136,12 +137,16 @@ const Metrics: React.FC = () => {
   const [onetimeDlvComponents, setOnetimeDlvComponents] = useState({ amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 });
   const [totalOnetimeYTD, setTotalOnetimeYTD] = useState<number>(0);
   const [totalMonthlyYTD, setTotalMonthlyYTD] = useState<number>(0);
+  const [totalYTD, setTotalYTD] = useState<number>(0);
   const [majorOnetimeYTD, setMajorOnetimeYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   const [mediumOnetimeYTD, setMediumOnetimeYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   const [normalOnetimeYTD, setNormalOnetimeYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   const [majorMonthlyYTD, setMajorMonthlyYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   const [mediumMonthlyYTD, setMediumMonthlyYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   const [normalMonthlyYTD, setNormalMonthlyYTD] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
+  const [allGiftsYTD, setAllGiftsYTD] = useState<GiftWithDonor[]>([]);
+  const [onetimeGiftsYTD, setOnetimeGiftsYTD] = useState<GiftWithDonor[]>([]);
+  const [monthlyGiftsYTD, setMonthlyGiftsYTD] = useState<GiftWithDonor[]>([]);
 
   const [totalOnetimeAllTime, setTotalOnetimeAllTime] = useState<number>(0);
   const [totalMonthlyAllTime, setTotalMonthlyAllTime] = useState<number>(0);
@@ -152,19 +157,15 @@ const Metrics: React.FC = () => {
   const [mediumMonthlyAllTime, setMediumMonthlyAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   const [normalMonthlyAllTime, setNormalMonthlyAllTime] = useState({ total: 0, gifts: [] as GiftWithDonor[] });
   
-  const [activeDonorsList, setActiveDonorsList] = useState<DonorData[]>([]);
   const [wmaDetails, setWmaDetails] = useState< { monthLabel: string; total: number; weight: number }[]>([]);
   const [churnedLargeDetails, setChurnedLargeDetails] = useState<{ donor: DonorData; priorYearSum: number }[] >([]);
   const [churnedDonorsList, setChurnedDonorsList] = useState<DonorData[]>([]);
   const [countsOld3mo, setCountsOld3mo] = useState<Record<string, number>>({});
   const [totalsOld3mo, setTotalsOld3mo] = useState<Record<string, number>>({});
-  const [lastGiftDates, setLastGiftDates] = useState<Record<string, Date>>({});
+  const [lastGiftDates] = useState<Record<string, Date>>({});
 
   const [topRecurringDonors, setTopRecurringDonors] = useState<TopDonorInfo[]>([]);
   const [topNonRecurringDonors, setTopNonRecurringDonors] = useState<TopDonorInfo[]>([]);
-  const [majorDonorContributionAmount, setMajorDonorContributionAmount] = useState<string>('');
-  const [majorDonorContributionPercentage, setMajorDonorContributionPercentage] = useState<number>(0);
-  const [majorContributorsList, setMajorContributorsList] = useState<ContributionListItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContentId, setModalContentId] = useState<string | null>(null);
   const [retainedMajorMonthly, setRetainedMajorMonthly] = useState<ClassifiedDonor[]>([]);
@@ -388,8 +389,6 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         const activeDonors = activeDonorIds
           .map(id => donorMap[id])
           .filter((d): d is DonorData => !!d);
-
-        setActiveDonorsList(activeDonors);
 
         // 10. Large donors who gave any time before oneYearAgo, but nothing since:
         const priorYearSums: Record<string, number> = {};
@@ -641,34 +640,6 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
           }
       });
 
-
-      //  CONTRIBUTION CALCULATIONS 
-      const combinedCurrentYearMajorIds = new Set([...currentYearMajorMonthlyIds, ...currentYearMajorOnetimeIds]);
-      const totalDonationsThisYear = currentYearGifts.reduce((acc, gift) => acc + (gift.totalamount || 0), 0);
-      const majorDonationsThisYear = currentYearGifts
-          .filter(gift => gift.donorid && combinedCurrentYearMajorIds.has(gift.donorid))
-          .reduce((acc, gift) => acc + (gift.totalamount || 0), 0);
-      const percentage = totalDonationsThisYear > 0 ? (majorDonationsThisYear / totalDonationsThisYear) * 100 : 0;
-      const amountString = `${formatAmount(majorDonationsThisYear)} of ${formatAmount(totalDonationsThisYear)}`;
-      setMajorDonorContributionAmount(amountString);
-      setMajorDonorContributionPercentage(percentage);
-
-      const contributorsList: ContributionListItem[] = [];
-      combinedCurrentYearMajorIds.forEach(donorId => {
-          const donor = donorMap[donorId];
-          if (donor) {
-              const totalContribution = currentYearGifts
-                  .filter(g => g.donorid === donorId)
-                  .reduce((acc, gift) => acc + (gift.totalamount || 0), 0);
-
-              contributorsList.push({
-                  donor,
-                  totalContribution,
-              });
-          }
-      });
-      setMajorContributorsList(contributorsList.sort((a, b) => b.totalContribution - a.totalContribution));
-
       //  RETENTION CALCULATIONS 
 
       // First, find who was a Major Monthly Donor LAST year (2024)
@@ -704,22 +675,17 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
       //17. DLV STUFF WOOOO
 
-      // Function to calculate DLV for a given cohort of donors
-            // Function to calculate DLV for a given cohort of donors
       const calculateDLV = (donorIds: Set<string>) => {
         if (donorIds.size === 0) return { finalDLV: 0, cohortList: [], components: { amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 } };
 
         const cohortGifts = gifts.filter(g => g.donorid && donorIds.has(g.donorid));
         if (cohortGifts.length === 0) return { finalDLV: 0, cohortList: [], components: { amount: 0, frequency: 0, lifespan: 0, avgLifetimeTotal: 0 } };
 
-        //  Calculation for DLV Components 
         const totalAmount = cohortGifts.reduce((acc, g) => acc + (g.totalamount || 0), 0);
         const avgAmount = totalAmount / cohortGifts.length; // Avg. per transaction
 
-        // ADDED: The metric you are looking for
         const avgLifetimeTotal = totalAmount / donorIds.size; // Avg. total giving per donor
 
-        // ... (rest of lifespan and frequency calculations remain the same) ...
         const giftsByDonor: Record<string, Date[]> = {};
         cohortGifts.forEach(g => {
             if (g.donorid && g.giftdate) {
@@ -804,18 +770,30 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         return result;
       };
 
-      const enrich = (gifts: GiftData[]): GiftWithDonor[] => gifts.map(g => ({ ...g, donor: donorMap[g.donorid] || null })).sort((a, b) => (b.totalamount || 0) - (a.totalamount || 0));
+      const enrich = (gifts: GiftData[]): GiftWithDonor[] => {
+      return gifts
+        .map(g => ({ ...g, donor: donorMap[g.donorid] || null }))
+        .sort((a, b) => new Date(b.giftdate ?? '').getTime() - new Date(a.giftdate ?? '').getTime());
+    };
 
-      // --- Calculate for Year-to-Date ---
       const ytdTotals = calculateSplitTierTotals(currentYearGifts);
       setTotalOnetimeYTD(ytdTotals.totalOnetime);
       setTotalMonthlyYTD(ytdTotals.totalMonthly);
+      // Set the combined total
+      setTotalYTD(ytdTotals.totalOnetime + ytdTotals.totalMonthly);
+
+      // Set state for the tier lists...
       setMajorOnetimeYTD({ total: ytdTotals.majorOnetime.total, gifts: enrich(ytdTotals.majorOnetime.gifts) });
       setMediumOnetimeYTD({ total: ytdTotals.mediumOnetime.total, gifts: enrich(ytdTotals.mediumOnetime.gifts) });
       setNormalOnetimeYTD({ total: ytdTotals.normalOnetime.total, gifts: enrich(ytdTotals.normalOnetime.gifts) });
       setMajorMonthlyYTD({ total: ytdTotals.majorMonthly.total, gifts: enrich(ytdTotals.majorMonthly.gifts) });
       setMediumMonthlyYTD({ total: ytdTotals.mediumMonthly.total, gifts: enrich(ytdTotals.mediumMonthly.gifts) });
       setNormalMonthlyYTD({ total: ytdTotals.normalMonthly.total, gifts: enrich(ytdTotals.normalMonthly.gifts) });
+
+      // --- NEW: Create lists for the total cards' pop-ups ---
+      setAllGiftsYTD(enrich(currentYearGifts));
+      setOnetimeGiftsYTD(enrich(currentYearGifts.filter(g => !g.isrecurring)));
+      setMonthlyGiftsYTD(enrich(currentYearGifts.filter(g => g.isrecurring)));
 
       // --- Calculate for All-Time ---
       const allTimeTotals = calculateSplitTierTotals(gifts);
@@ -876,6 +854,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       icon: faPiggyBank, 
       variant: 'primary',
       subtitle: 'Accumulated from all gifts',
+      donationType: ['monthly', 'one-time'],
       categories: ['All-Time Classifications','Lifetime Value'],
     },
     {
@@ -886,6 +865,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     variant: 'primary',
     onClick: () => openModal('newDonors'),
     subtitle: 'Click to view list',
+    donationType: ['monthly', 'one-time'],
     categories: ['Current Year Metrics'],
   },
   {
@@ -896,6 +876,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     variant: 'success',
     onClick: () => openModal('recurringDonors'),
     subtitle: 'Click to view IDs',
+    donationType: ['monthly', 'one-time'],
     categories: ['Current Year Metrics', 'Donor Classifications'],
   },
   {
@@ -903,9 +884,10 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     title: 'Median Donation (Last 30 Days)',
     value: metrics.medianDonation,
     icon: faChartLine,
-    variant: 'warning',
+    variant: 'success',
     onClick: () => openModal('medianDonation'),
     subtitle: 'Click to view details',
+    donationType: ['monthly', 'one-time'],
     categories: ['Current Year Metrics'],
   },
   {
@@ -916,6 +898,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     variant: 'dark',
     onClick: () => openModal('wma'),
     subtitle: 'Click to view breakdown',
+    donationType: ['monthly', 'one-time'],
     categories: ['Current Year Metrics'],
   },
   {
@@ -926,6 +909,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     variant: 'success',
     onClick: () => openModal('recAboveMedian'),
     subtitle: 'Click to view',
+    donationType: ['monthly'],
     categories: ['Median Analysis'],
   },
   {
@@ -933,29 +917,32 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     title: '≤ Median & Recurring (1mo)',
     value: metrics.recBelowMedian1mo,
     icon: faArrowDown,
-    variant: 'info',
+    variant: 'warning',
     onClick: () => openModal('recBelowMedian'),
     subtitle: 'Click to view',
+    donationType: ['monthly'],
     categories: ['Median Analysis'],
   },
   {
     id: 'nonRecAboveMedian',
     title: '> Median & Non-Recurring (1mo)',
     value: metrics.nonRecAboveMedian1mo,
-    icon: faArrowUpRightDots,
-    variant: 'warning',
+    icon: faArrowUp,
+    variant: 'success',
     onClick: () => openModal('nonRecAboveMedian'),
     subtitle: 'Click to view',
+    donationType: ['one-time'],
     categories: ['Median Analysis'],
   },
   {
     id: 'nonRecBelowMedian',
     title: '≤ Median & Non-Recurring (1mo)',
     value: metrics.nonRecBelowMedian1mo,
-    icon: faArrowDownShortWide,
-    variant: 'secondary',
+    icon: faArrowDown,
+    variant: 'warning',
     onClick: () => openModal('nonRecBelowMedian'),
     subtitle: 'Click to view',
+    donationType: ['one-time'],
     categories: ['Median Analysis'],
   },
   {
@@ -966,6 +953,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     variant: 'success',
     onClick: () => openModal('recAboveWMA'),
     subtitle: 'Click to view',
+    donationType: ['monthly'],
     categories: ['WMA Analysis'],
   },
   {
@@ -973,29 +961,32 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     title: '≤ WMA & Recurring (1mo)',
     value: metrics.recBelowWMA1mo,
     icon: faArrowTrendDown,
-    variant: 'info',
+    variant: 'warning',
     onClick: () => openModal('recBelowWMA'),
     subtitle: 'Click to view',
+    donationType: ['monthly'],
     categories: ['WMA Analysis'],
   },
   {
     id: 'nonRecAboveWMA',
     title: '> WMA & Non-Recurring (1mo)',
     value: metrics.nonRecAboveWMA1mo,
-    icon: faArrowUpRightDots,
-    variant: 'warning',
+    icon: faArrowTrendUp,
+    variant: 'success',
     onClick: () => openModal('nonRecAboveWMA'),
     subtitle: 'Click to view',
+    donationType: ['one-time'],
     categories: ['WMA Analysis'],
   },
   {
     id: 'nonRecBelowWMA',
     title: '≤ WMA & Non-Recurring (1mo)',
     value: metrics.nonRecBelowWMA1mo,
-    icon: faArrowDownShortWide,
-    variant: 'secondary',
+    icon: faArrowTrendDown,
+    variant: 'warning',
     onClick: () => openModal('nonRecBelowWMA'),
     subtitle: 'Click to view',
+    donationType: ['one-time'],
     categories: ['WMA Analysis'],
   },
   {
@@ -1006,6 +997,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       : 'N/A',
     icon: faInfoCircle,
     subtitle: 'Recurring share of total donation value',
+    donationType: ['monthly'],
     categories: ['Current Year Metrics'],
   },
   {
@@ -1015,6 +1007,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     icon: faUserSlash,
     variant: 'warning',
     subtitle: 'Click to view list',
+    donationType: ['monthly', 'one-time'],
     onClick: () => openModal('churnedLarge'),
     categories: ['Top Donor Metrics'],
   },
@@ -1026,6 +1019,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     variant: 'warning',
     onClick: () => openModal('churnedMonthly'),
     subtitle: 'Click to view list',
+    donationType: ['monthly'],
     categories: ['currentYearMetrics'],
   },
   {
@@ -1036,6 +1030,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'success',
   onClick: () => openModal('top20Recurring'),
   subtitle: 'Click to view list',
+  donationType: ['monthly'],
   categories: ['Top Donor Metrics'],
 },
 {
@@ -1046,6 +1041,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'info',
   onClick: () => openModal('top20NonRecurring'),
   subtitle: 'Click to view list',
+  donationType: ['one-time'],
   categories: ['Top Donor Metrics'],
 },
 {
@@ -1055,7 +1051,8 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faUserCheck, 
   variant: 'success',
   onClick: () => openModal('majorMonthly'), 
-  subtitle: '$100+/mo', 
+  subtitle: '$100+/mo',
+  donationType: ['monthly'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1066,6 +1063,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'primary',
   onClick: () => openModal('mediumMonthly'), 
   subtitle: '$50-100/mo', 
+  donationType: ['monthly'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1076,6 +1074,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'secondary',
   onClick: () => openModal('normalMonthly'), 
   subtitle: '< $50/mo', 
+  donationType: ['monthly'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1086,6 +1085,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'primary',
   onClick: () => openModal('majorOnetime'), 
   subtitle: '$1,000+', 
+  donationType: ['one-time'],
   categories: ['Donor Classifications'],
 },
 
@@ -1097,6 +1097,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'primary',
   onClick: () => openModal('mediumOnetime'), 
   subtitle: '$500-1,000', 
+  donationType: ['one-time'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1107,6 +1108,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'secondary',
   onClick: () => openModal('normalOnetime'), 
   subtitle: '< $500', 
+  donationType: ['one-time'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1117,6 +1119,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'dark',
   onClick: () => openModal('allTimeMajorMonthly'), 
   subtitle: '$100+/mo', 
+  donationType: ['monthly'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1126,7 +1129,8 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faUserFriends, 
   variant: 'dark',
   onClick: () => openModal('allTimeMediumMonthly'), 
-  subtitle: '$50-100/mo', 
+  subtitle: '$50-100/mo',
+  donationType: ['monthly'], 
   categories: ['Donor Classifications'],
 },
 {
@@ -1137,6 +1141,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'dark',
   onClick: () => openModal('allTimeNormalMonthly'), 
   subtitle: '< $50/mo', 
+  donationType: ['monthly'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1147,6 +1152,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'dark',
   onClick: () => openModal('allTimeMajorOnetime'), 
   subtitle: '$1,000+', 
+  donationType: ['one-time'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1157,6 +1163,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'dark',
   onClick: () => openModal('allTimeMediumOnetime'), 
   subtitle: '$500-1,000', 
+  donationType: ['one-time'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1167,26 +1174,30 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'dark',
   onClick: () => openModal('allTimeNormalOnetime'), 
   subtitle: '< $500', 
+  donationType: ['one-time'],
   categories: ['Donor Classifications'],
 },
 {
-  id: 'totalOneTimeYTD',
+  id: 'totalDonationsYTD',
   title: 'Total Donations (YTD)',
-  value: formatAmount(totalOnetimeYTD),
-  icon: faDollarSign,
+  value: formatAmount(totalYTD),
+  icon: faChartPie,
   variant: 'primary',
-  subtitle: `Since Jan 1, ${currentYear}`,
-  categories: ['Donor Classifications'],
+  subtitle: `All gifts since Jan 1, ${currentYear}`,
+  donationType: ['monthly', 'one-time'],
+  onClick: () => openModal('totalDonationsYTD'),
+  categories: ['Donation Tiers (YTD)'],
 },
-// --- YTD One-Time Tiers ---
 {
   id: 'totalOnetimeYTD',
   title: 'Total One-Time Donations (YTD)',
   value: formatAmount(totalOnetimeYTD),
   icon: faDollarSign,
-  variant: 'primary',
-  subtitle: `Since Jan 1, ${currentYear}`,
-  categories: ['Donor Classifications'],
+  variant: 'info', 
+  subtitle: `All non-recurring gifts this year`,
+  donationType: ['one-time'],
+  onClick: () => openModal('totalOnetimeYTD'),
+  categories: ['Donation Tiers (YTD)'],
 },
 {
   id: 'majorOnetimeYTD',
@@ -1195,6 +1206,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faStar,
   variant: 'success',
   subtitle: `Gifts ≥ $1,000 (${(totalOnetimeYTD > 0 ? (majorOnetimeYTD.total / totalOnetimeYTD) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['one-time'],
   onClick: () => openModal('majorOnetimeYTD'),
   categories: ['Donor Classifications'],
 },
@@ -1205,6 +1217,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faGift,
   variant: 'primary',
   subtitle: `Gifts $500-$999 (${(totalOnetimeYTD > 0 ? (mediumOnetimeYTD.total / totalOnetimeYTD) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['one-time'],
   onClick: () => openModal('mediumOnetimeYTD'),
   categories: ['Donor Classifications'],
 },
@@ -1215,11 +1228,10 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faHandHoldingHeart,
   variant: 'secondary',
   subtitle: `Gifts < $500 (${(totalOnetimeYTD > 0 ? (normalOnetimeYTD.total / totalOnetimeYTD) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['one-time'],
   onClick: () => openModal('normalOnetimeYTD'),
   categories: ['Donor Classifications'],
 },
-
-// --- YTD Monthly Tiers ---
 {
   id: 'totalMonthlyYTD',
   title: 'Total Monthly Donations (YTD)',
@@ -1227,6 +1239,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faCalendarAlt,
   variant: 'primary',
   subtitle: `Since Jan 1, ${currentYear}`,
+  donationType: ['monthly'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1236,6 +1249,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faStar,
   variant: 'success',
   subtitle: `Gifts ≥ $100 (${(totalMonthlyYTD > 0 ? (majorMonthlyYTD.total / totalMonthlyYTD) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['monthly'],
   onClick: () => openModal('majorMonthlyYTD'),
   categories: ['Donor Classifications'],
 },
@@ -1246,6 +1260,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faGift,
   variant: 'primary',
   subtitle: `Gifts $50-$99 (${(totalMonthlyYTD > 0 ? (mediumMonthlyYTD.total / totalMonthlyYTD) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['monthly'],
   onClick: () => openModal('mediumMonthlyYTD'),
   categories: ['Donor Classifications'],
 },
@@ -1256,6 +1271,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faHandHoldingHeart,
   variant: 'secondary',
   subtitle: `Gifts < $50 (${(totalMonthlyYTD > 0 ? (normalMonthlyYTD.total / totalMonthlyYTD) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['monthly'],
   onClick: () => openModal('normalMonthlyYTD'),
   categories: ['Donor Classifications'],
 },
@@ -1267,6 +1283,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faDollarSign,
   variant: 'dark',
   subtitle: 'All non-recurring gifts',
+  donationType: ['one-time'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1276,6 +1293,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faStar,
   variant: 'dark',
   subtitle: `Gifts ≥ $1,000 (${(totalOnetimeAllTime > 0 ? (majorOnetimeAllTime.total / totalOnetimeAllTime) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['one-time'],
   onClick: () => openModal('majorOnetimeAllTime'),
   categories: ['Donor Classifications'],
 },
@@ -1286,6 +1304,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faGift,
   variant: 'dark',
   subtitle: `Gifts $500-$999 (${(totalOnetimeAllTime > 0 ? (mediumOnetimeAllTime.total / totalOnetimeAllTime) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['one-time'],
   onClick: () => openModal('mediumOnetimeAllTime'),
   categories: ['Donor Classifications'],
 },
@@ -1296,6 +1315,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faHandHoldingHeart,
   variant: 'dark',
   subtitle: `Gifts < $500 (${(totalOnetimeAllTime > 0 ? (normalOnetimeAllTime.total / totalOnetimeAllTime) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['one-time'],
   onClick: () => openModal('normalOnetimeAllTime'),
   categories: ['Donor Classifications'],
 },
@@ -1308,6 +1328,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faCalendarAlt,
   variant: 'dark',
   subtitle: 'All recurring gifts',
+  donationType: ['monthly'],
   categories: ['Donor Classifications'],
 },
 {
@@ -1317,6 +1338,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faStar,
   variant: 'dark',
   subtitle: `Gifts ≥ $100 (${(totalMonthlyAllTime > 0 ? (majorMonthlyAllTime.total / totalMonthlyAllTime) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['monthly'],
   onClick: () => openModal('majorMonthlyAllTime'),
   categories: ['Donor Classifications'],
 },
@@ -1327,6 +1349,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faGift,
   variant: 'dark',
   subtitle: `Gifts $50-$99 (${(totalMonthlyAllTime > 0 ? (mediumMonthlyAllTime.total / totalMonthlyAllTime) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['monthly'],
   onClick: () => openModal('mediumMonthlyAllTime'),
   categories: ['Donor Classifications'],
 },
@@ -1337,6 +1360,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faHandHoldingHeart,
   variant: 'dark',
   subtitle: `Gifts < $50 (${(totalMonthlyAllTime > 0 ? (normalMonthlyAllTime.total / totalMonthlyAllTime) * 100 : 0).toFixed(1)}%)`,
+  donationType: ['monthly'],
   onClick: () => openModal('normalMonthlyAllTime'),
   categories: ['Donor Classifications'],
 },
@@ -1348,6 +1372,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'danger',
   onClick: () => openModal('churnedMajorMonthly'), 
   subtitle: 'All-Time Major Monthly not currently in tier',
+  donationType: ['monthly'],
   categories: ['Retention & Churn'],
 },
 {
@@ -1358,6 +1383,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   variant: 'success',
   onClick: () => openModal('retainedMajorMonthly'),
   subtitle: 'Major Monthly in 2024 & 2025',
+  donationType: ['monthly'],
   categories: ['Retention & Churn'],
 },
 {
@@ -1367,6 +1393,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faGem,
   variant: 'success',
   subtitle: 'Predicted value (Click to view cohort)',
+  donationType: ['monthly'],
   onClick: () => openModal('monthlyMajorDLV'),
   categories: ['Lifetime Value'],
 },
@@ -1377,12 +1404,21 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   icon: faGem,
   variant: 'info',
   subtitle: 'Predicted value (Click to view cohort)',
+  donationType: ['one-time'],
   onClick: () => openModal('onetimeMajorDLV'),
   categories: ['Lifetime Value'],
 },
   ];
 
     const filteredMetrics = metricDefinitions
+    .filter(metric => {
+      // If a card has a donationType tag, it must match the active filter
+      if (metric.donationType) {
+        return metric.donationType.includes(donationTypeFilter);
+      }
+      // If a card has no tag, show it always (useful for combined totals)
+      return true;
+    })
       .filter(metric => 
         activeFilter === 'All Metrics' || metric.categories.includes(activeFilter)
       )
@@ -1408,7 +1444,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
           options: [
             'All Metrics', 'Top Donor Metrics', 'Current Year Metrics', 
             'Donor Classifications', 
-            'Retention & Churn', 'Lifetime Value',
+            'Retention & Churn', 'Lifetime Value', 'Donation Tiers (YTD)',
           ]
         }}
         onFilterChange={handleFilterChange}
@@ -1417,6 +1453,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         primaryButtonLabel=""
         secondaryButtonLabel=""
         showSecondaryButton={false}
+        onDonationTypeChange={setDonationTypeFilter}
       />
 
         <div className="metrics-display-area">
@@ -1526,8 +1563,7 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         {modalContentId === 'nonRecAboveWMA' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => !g.isrecurring && g.totalamount! > metrics.weightedMovingAvg).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
         {modalContentId === 'nonRecBelowWMA' && (<div className="top-list-content"><ol className="top-list">{rawDonationsList.filter(g => !g.isrecurring && g.totalamount! <= metrics.weightedMovingAvg).map((g, idx) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
 
-        {/* === All of your custom lists === */}
-        {/* Note: I'm omitting the Normal/Medium lists for brevity, but you would add them here */}
+        {/* === custom lists === */}
         {modalContentId === 'top20Recurring' && (<div className="top-list-content">{topRecurringDonors.length === 0 ? <div className="top-list-empty">No recurring donors this year.</div> : <ul className="top-list">{topRecurringDonors.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmount)}<br /><span style={{color: '#6c757d'}}>{item.type}</span></div></li>))}</ul>}</div>)}
         {modalContentId === 'top20NonRecurring' && (<div className="top-list-content">{topNonRecurringDonors.length === 0 ? <div className="top-list-empty">No one-time donors this year.</div> : <ul className="top-list">{topNonRecurringDonors.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmount)}<br /><span style={{color: '#6c757d'}}>{item.type}</span></div></li>))}</ul>}</div>)}
         {modalContentId === 'majorMonthly' && (<div className="top-list-content"><ul className="top-list">{majorMonthly.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
@@ -1538,6 +1574,9 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         {modalContentId === 'retainedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{retainedMajorMonthly.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"> {donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
         {modalContentId === 'monthlyMajorDLV' && (<div className="top-list-content"><div className="dlv-breakdown"><p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(monthlyDlvComponents.avgLifetimeTotal)}</p><p><strong>Average Donation Amount:</strong> {formatAmount(monthlyDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {monthlyDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {monthlyDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(monthlyDlvComponents.amount)} &times; {monthlyDlvComponents.frequency.toFixed(2)} &times; {monthlyDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(monthlyMajorDLV)}</strong></p></div><ul className="top-list">{monthlyDlvCohort.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
         {modalContentId === 'onetimeMajorDLV' && (<div className="top-list-content"><div className="dlv-breakdown"><p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(onetimeDlvComponents.avgLifetimeTotal)}</p><p><strong>Average Donation Amount:</strong> {formatAmount(onetimeDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {onetimeDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {onetimeDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(onetimeDlvComponents.amount)} &times; {onetimeDlvComponents.frequency.toFixed(2)} &times; {onetimeDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(onetimeMajorDLV)}</strong></p></div><ul className="top-list">{onetimeDlvCohort.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalDonationsYTD' && (<div className="top-list-content"><ul className="top-list">{allGiftsYTD.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{onetimeGiftsYTD.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{monthlyGiftsYTD.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
 
         {modalContentId === 'mediumMonthly' && (
           <div className="top-list-content"><ul className="top-list">{mediumMonthly.map((item) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>
@@ -1580,9 +1619,12 @@ oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         {modalContentId === 'mediumMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{mediumMonthlyAllTime.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
         {modalContentId === 'normalMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{normalMonthlyAllTime.gifts.map((g, i) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(g.donor)}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ul></div>)}
 
+
+
       </Modal>
     </div>
       )}
 
 export default Metrics;
+
 
