@@ -1,0 +1,52 @@
+/* === Stat Card General Styles (Scoped to this component) === */
+.dashboard-stat-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+}
+.dashboard-stat-card .stat-card-icon {
+  margin-right: 1rem;
+  color: var(--primary-color);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background-color: rgba(49, 223, 162, 0.1);
+}
+.dashboard-stat-card .stat-card-title {
+  font-size: 0.85rem;
+  color: var(--text-secondary-color);
+  margin: 0 0 0.25rem 0;
+}
+.dashboard-stat-card .stat-card-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary-color);
+  margin: 0;
+}
+
+/* === Size variant for smaller cards === */
+.dashboard-stat-card.stat-card-small {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+}
+.dashboard-stat-card.stat-card-small .stat-card-icon {
+  margin-right: 0;
+  margin-bottom: 0.75rem;
+  width: 32px;
+  height: 32px;
+  font-size: 0.9rem;
+}
+.dashboard-stat-card.stat-card-small .stat-card-title {
+  font-size: 0.75rem;
+}
+.dashboard-stat-card.stat-card-small .stat-card-value {
+  font-size: 1.25rem;
+}

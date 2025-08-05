@@ -7,7 +7,6 @@ import {
   faArrowDown,
   faUserPlus,
   faArrowUpRightDots,
-  faArrowDownShortWide,
   faArrowTrendUp,
   faArrowTrendDown,
   faInfoCircle,
