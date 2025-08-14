@@ -8,6 +8,16 @@ export type TopDonorInfo = { donor: DonorData; totalAmount: number; type: 'Recur
 export type ClassifiedDonor = { donor: DonorData; amount: number; };
 export type ChurnedDonorInfo = { donor: DonorData; lifetimeTotal: number; lastGiftDate: string; lastRecurringAmount?: number; lastRecurringDate?: string; };
 export type ContributionListItem = { donor: DonorData; totalContribution: number; };
+export type SnapshotDonorInfo = { donor: DonorData; totalAmountThisMonth: number; lastGiftAmount: number; lastGiftDate: string; };
+
+export type YearlyProjectionData = {
+  percentage: number;
+  projectedTotal: number;
+  lastYearTotal: number;
+  thisYearYTDSum: number;
+  monthlyComparison: { month: string; lastYear: number; thisYear: number; }[];
+  quarterlyComparison: { quarter: string; lastYear: number; thisYear: number; }[];
+};
 
 export type MetricsType = {
   newDonorsLastMonth: number;
@@ -26,7 +36,6 @@ export type MetricsType = {
   recurringDonationRatio: number;
   churnedLargeDonors: number;
   monthlyDonorsWhoChurned: number;
-  // This Month's Snapshot Metrics
   totalValueCurrentMonth: number;
   uniqueDonorsCurrentMonth: number;
   averageDonationCurrentMonth: number;
@@ -36,6 +45,13 @@ export type MetricsType = {
   totalGiftsCurrentMonth: number;
   retentionPercentageCurrentMonth: number;
   totalDonorPoolCount: number;
+  majorDonorsCurrentMonth_Monthly: number;
+  mediumDonorsCurrentMonth_Monthly: number;
+  normalDonorsCurrentMonth_Monthly: number;
+  majorDonorsCurrentMonth_Onetime: number;
+  mediumDonorsCurrentMonth_Onetime: number;
+  normalDonorsCurrentMonth_Onetime: number;
+  newDonorsThisMonth: number; 
 };
 
 // This defines the shape of the object our hook will return
@@ -43,6 +59,7 @@ export interface MetricsData {
   isLoading: boolean;
   error: string | null;
   metrics: MetricsType;
+  yearlyProjection: YearlyProjectionData;
   rawDonationsList: GiftWithDonor[];
   medianIndex: number | null;
   wmaDetails: { monthLabel: string; total: number; weight: number }[];
@@ -53,10 +70,17 @@ export interface MetricsData {
   majorDonorsCurrentMonthList: ClassifiedDonor[];
   mediumDonorsCurrentMonthList: ClassifiedDonor[];
   normalDonorsCurrentMonthList: ClassifiedDonor[];
+  majorDonorsCurrentMonthList_Monthly: SnapshotDonorInfo[];
+  mediumDonorsCurrentMonthList_Monthly: SnapshotDonorInfo[];
+  normalDonorsCurrentMonthList_Monthly: SnapshotDonorInfo[];
+  majorDonorsCurrentMonthList_Onetime: SnapshotDonorInfo[];
+  mediumDonorsCurrentMonthList_Onetime: SnapshotDonorInfo[];
+  normalDonorsCurrentMonthList_Onetime: SnapshotDonorInfo[];
   retainedDonorsList: DonorData[];
   churnedFromLastMonthList: DonorData[];
   uniqueDonorsCurrentMonthList: DonorData[];
   lastMonthDonorPool: DonorData[];
+  newDonorsThisMonthList: SnapshotDonorInfo[];
   averageDonationChartData: number[];
   totalDonorPoolList: DonorData[];
   [key: string]: any;
@@ -74,7 +98,13 @@ export const useMetrics = (): MetricsData => {
       nonRecBelowWMA1mo: 0, recurringDonationRatio: 0, churnedLargeDonors: 0, monthlyDonorsWhoChurned: 0,
       totalValueCurrentMonth: 0, uniqueDonorsCurrentMonth: 0, averageDonationCurrentMonth: 0,
       majorDonorsCurrentMonth: 0, mediumDonorsCurrentMonth: 0, normalDonorsCurrentMonth: 0, totalGiftsCurrentMonth: 0,
-      retentionPercentageCurrentMonth: 0,totalDonorPoolCount: 0,
+      retentionPercentageCurrentMonth: 0,totalDonorPoolCount: 0, newDonorsThisMonth: 0,
+      majorDonorsCurrentMonth_Monthly: 0, mediumDonorsCurrentMonth_Monthly: 0, normalDonorsCurrentMonth_Monthly: 0,
+      majorDonorsCurrentMonth_Onetime: 0, mediumDonorsCurrentMonth_Onetime: 0, normalDonorsCurrentMonth_Onetime: 0,
+    },
+    yearlyProjection: {
+      percentage: 0, projectedTotal: 0, lastYearTotal: 0, thisYearYTDSum: 0,
+      monthlyComparison: [], quarterlyComparison: [],
     },
     newDonorsList: [], recurringGiftsMonth: [], rawDonationsList: [], medianIndex: null, wmaDetails: [],
     topRecurringDonors: [], topNonRecurringDonors: [], majorMonthly: [], mediumMonthly: [], normalMonthly: [],
@@ -98,9 +128,11 @@ export const useMetrics = (): MetricsData => {
     giftsCurrentMonthList: [], majorDonorsCurrentMonthList: [], mediumDonorsCurrentMonthList: [], normalDonorsCurrentMonthList: [],
     retainedDonorsList: [],
     churnedFromLastMonthList: [],
-    lastMonthDonorPool: [],
+    lastMonthDonorPool: [], newDonorsThisMonthList: [],
     uniqueDonorsCurrentMonthList: [],
     totalDonorPoolList: [],
+    majorDonorsCurrentMonthList_Monthly: [], mediumDonorsCurrentMonthList_Monthly: [], normalDonorsCurrentMonthList_Monthly: [],
+    majorDonorsCurrentMonthList_Onetime: [], mediumDonorsCurrentMonthList_Onetime: [], normalDonorsCurrentMonthList_Onetime: [],
   });
 
   useEffect(() => {
@@ -154,6 +186,45 @@ export const useMetrics = (): MetricsData => {
         
         const enrich = (gifts: GiftData[]): GiftWithDonor[] => gifts.map(g => ({ ...g, donor: donorMap[g.donorid] || null })).sort((a, b) => new Date(b.giftdate ?? '').getTime() - new Date(a.giftdate ?? '').getTime());
 
+       // --- NEW: Yearly Projection Calculation (CORRECTED) ---
+        const lastYearTotal = previousYearGifts.reduce((acc, g) => acc + (g.totalamount || 0), 0);
+        
+        const dayOfYear = (date: Date) => Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+        const currentDayOfYear = dayOfYear(now);
+
+        const lastYearYTDGifts = previousYearGifts.filter(g => g.giftdate && dayOfYear(new Date(g.giftdate)) <= currentDayOfYear);
+        const lastYearYTDSum = lastYearYTDGifts.reduce((acc, g) => acc + (g.totalamount || 0), 0);
+        
+        const thisYearYTDSum = currentYearGifts.reduce((acc, g) => acc + (g.totalamount || 0), 0);
+
+        const trend = lastYearYTDSum > 0 ? thisYearYTDSum / lastYearYTDSum : 1;
+        const projectedTotal = lastYearTotal * trend;
+        const percentage = lastYearTotal > 0 ? ((projectedTotal - lastYearTotal) / lastYearTotal) * 100 : 0;
+
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        
+        // CORRECTED: Use string manipulation for reliable month filtering
+        const monthlyComparison = months.map((month, i) => {
+          const monthString = String(i + 1).padStart(2, '0');
+          const thisYearMonthly = currentYearGifts.filter(g => g.giftdate && g.giftdate.substring(5, 7) === monthString).reduce((acc, g) => acc + (g.totalamount || 0), 0);
+          const lastYearMonthly = previousYearGifts.filter(g => g.giftdate && g.giftdate.substring(5, 7) === monthString).reduce((acc, g) => acc + (g.totalamount || 0), 0);
+          return { month, lastYear: lastYearMonthly, thisYear: thisYearMonthly };
+        });
+
+        const quarterlyComparison = [
+          { quarter: "Q1", months: ["01", "02", "03"] },
+          { quarter: "Q2", months: ["04", "05", "06"] },
+          { quarter: "Q3", months: ["07", "08", "09"] },
+          { quarter: "Q4", months: ["10", "11", "12"] },
+        ].map(q => {
+          const thisYearQuarterly = currentYearGifts.filter(g => g.giftdate && q.months.includes(g.giftdate.substring(5, 7))).reduce((acc, g) => acc + (g.totalamount || 0), 0);
+          const lastYearQuarterly = previousYearGifts.filter(g => g.giftdate && q.months.includes(g.giftdate.substring(5, 7))).reduce((acc, g) => acc + (g.totalamount || 0), 0);
+          return { quarter: q.quarter, lastYear: lastYearQuarterly, thisYear: thisYearQuarterly };
+        });
+
+        const yearlyProjection = { percentage, projectedTotal, lastYearTotal, thisYearYTDSum, monthlyComparison, quarterlyComparison };
+
+
         // --- Calculations for "This Month's Snapshot" ---
         const currentYearString = now.getFullYear().toString();
         const currentMonthString = String(now.getMonth() + 1).padStart(2, '0');
@@ -199,6 +270,50 @@ export const useMetrics = (): MetricsData => {
         const majorDonorsCurrentMonth = majorDonorsCurrentMonthList.length;
         const mediumDonorsCurrentMonth = mediumDonorsCurrentMonthList.length;
         const normalDonorsCurrentMonth = normalDonorsCurrentMonthList.length;
+
+        // My very lazy filter donor classifcation for the current month ;/
+        const recurringGiftsCurrentMonth = giftsCurrentMonth.filter(g => g.isrecurring);
+        const onetimeGiftsCurrentMonth = giftsCurrentMonth.filter(g => !g.isrecurring);
+
+        
+        const classifyDonorsForSnapshot = (giftList: GiftData[]): SnapshotDonorInfo[] => {
+            const donorDetails: { [key: string]: { total: number; lastGift: { date: string; amount: number } } } = {};
+
+            for (const gift of giftList) {
+                if (!gift.donorid || !gift.giftdate) continue;
+
+                if (!donorDetails[gift.donorid]) {
+                    donorDetails[gift.donorid] = { total: 0, lastGift: { date: '1970-01-01', amount: 0 } };
+                }
+
+                donorDetails[gift.donorid].total += gift.totalamount || 0;
+
+                if (gift.giftdate > donorDetails[gift.donorid].lastGift.date) {
+                    donorDetails[gift.donorid].lastGift = { date: gift.giftdate, amount: gift.totalamount || 0 };
+                }
+            }
+
+            return Object.keys(donorDetails).map(donorId => {
+                const donor = donorMap[donorId];
+                const details = donorDetails[donorId];
+                return {
+                    donor,
+                    totalAmountThisMonth: details.total,
+                    lastGiftAmount: details.lastGift.amount,
+                    lastGiftDate: details.lastGift.date,
+                };
+            }).filter((d): d is SnapshotDonorInfo => d.donor !== null);
+        };
+        
+        const monthlyTiers = classifyDonorsForSnapshot(recurringGiftsCurrentMonth);
+        const majorDonorsCurrentMonthList_Monthly = monthlyTiers.filter(d => d.totalAmountThisMonth >= 100);
+        const mediumDonorsCurrentMonthList_Monthly = monthlyTiers.filter(d => d.totalAmountThisMonth >= 50 && d.totalAmountThisMonth < 100);
+        const normalDonorsCurrentMonthList_Monthly = monthlyTiers.filter(d => d.totalAmountThisMonth < 50);
+
+        const onetimeTiers = classifyDonorsForSnapshot(onetimeGiftsCurrentMonth);
+        const majorDonorsCurrentMonthList_Onetime = onetimeTiers.filter(d => d.totalAmountThisMonth >= 1000);
+        const mediumDonorsCurrentMonthList_Onetime = onetimeTiers.filter(d => d.totalAmountThisMonth >= 500 && d.totalAmountThisMonth < 1000);
+        const normalDonorsCurrentMonthList_Onetime = onetimeTiers.filter(d => d.totalAmountThisMonth < 500);
 
         // --- NEW: Monthly Retention Calculation ---
         // 1. Get all unique donors who gave in the PREVIOUS month.
@@ -260,6 +375,44 @@ export const useMetrics = (): MetricsData => {
         };
 
         const averageDonationChartData = generateMonthlyAverageData(gifts, 6)
+
+        // This months donor ID's
+        const newDonorsThisMonthIds = new Set<string>();
+        thisMonthDonorIds.forEach(donorId => {
+            if (donorId && !lastMonthDonorIds.has(donorId)) {
+                newDonorsThisMonthIds.add(donorId);
+            }
+        });
+
+        const newDonorsThisMonthList: SnapshotDonorInfo[] = [];
+        newDonorsThisMonthIds.forEach(donorId => {
+            const donor = donorMap[donorId];
+            if (donor) {
+                const giftsFromThisDonorThisMonth = giftsCurrentMonth.filter(g => g.donorid === donorId);
+                
+                const totalAmountThisMonth = giftsFromThisDonorThisMonth.reduce((acc, g) => acc + (g.totalamount || 0), 0);
+                
+                let lastGiftAmount = 0;
+                let lastGiftDate = '';
+                
+                giftsFromThisDonorThisMonth.forEach(g => {
+                    if (g.giftdate && g.giftdate > lastGiftDate) {
+                        lastGiftDate = g.giftdate;
+                        lastGiftAmount = g.totalamount || 0;
+                    }
+                });
+
+                newDonorsThisMonthList.push({
+                    donor,
+                    totalAmountThisMonth,
+                    lastGiftAmount,
+                    lastGiftDate
+                });
+            }
+        });
+        
+        const newDonorsThisMonth = newDonorsThisMonthList.length;
+
 
         // --- All-Time Recurring Donor Ratio Calculation ---
         const recurringDonorIdsAllTime = new Set(gifts.filter(g => g.isrecurring).map(g => g.donorid).filter(Boolean));
@@ -496,14 +649,20 @@ export const useMetrics = (): MetricsData => {
             churnedLargeDonors: churnedLargeList.length,
             monthlyDonorsWhoChurned: newChurnedDonorsList.length,
             totalValueCurrentMonth: totalValueCurrentMonth,
-            uniqueDonorsCurrentMonth,
+            uniqueDonorsCurrentMonth, 
             averageDonationCurrentMonth,
             majorDonorsCurrentMonth,
             mediumDonorsCurrentMonth,
             normalDonorsCurrentMonth,
             totalGiftsCurrentMonth,
-            retentionPercentageCurrentMonth,
+            retentionPercentageCurrentMonth, newDonorsThisMonth,
             totalDonorPoolCount: donors.length,
+            majorDonorsCurrentMonth_Monthly: majorDonorsCurrentMonthList_Monthly.length,
+            mediumDonorsCurrentMonth_Monthly: mediumDonorsCurrentMonthList_Monthly.length,
+            normalDonorsCurrentMonth_Monthly: normalDonorsCurrentMonthList_Monthly.length,
+            majorDonorsCurrentMonth_Onetime: majorDonorsCurrentMonthList_Onetime.length,
+            mediumDonorsCurrentMonth_Onetime: mediumDonorsCurrentMonthList_Onetime.length,
+            normalDonorsCurrentMonth_Onetime: normalDonorsCurrentMonthList_Onetime.length,
           },
           newDonorsList: newDonors, recurringGiftsMonth: enrich(oneMonthGifts.filter(g => g.isrecurring)), rawDonationsList, medianIndex, wmaDetails,
           topRecurringDonors, topNonRecurringDonors,
@@ -546,10 +705,16 @@ export const useMetrics = (): MetricsData => {
           totalGiftsAllTime: gifts.length,
           retainedDonorsList,
           churnedFromLastMonthList,
-          lastMonthDonorPool,
+          lastMonthDonorPool, newDonorsThisMonthList, yearlyProjection,
           averageDonationChartData,
           uniqueDonorsCurrentMonthList,
-           totalDonorPoolList: donors,
+          totalDonorPoolList: donors,
+          majorDonorsCurrentMonthList_Monthly,
+          mediumDonorsCurrentMonthList_Monthly,
+          normalDonorsCurrentMonthList_Monthly,
+          majorDonorsCurrentMonthList_Onetime,
+          mediumDonorsCurrentMonthList_Onetime,
+          normalDonorsCurrentMonthList_Onetime,
         });
 
       } catch (err) {

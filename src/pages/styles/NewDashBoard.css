@@ -59,6 +59,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1rem;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.nested-stat-grid.is-fading {
+  opacity: 0;
 }
 
 .nested-stat-grid:not(:last-child) {
@@ -90,23 +95,30 @@
   gap: 1.5rem;
 }
 
-/* ===== Advanced Stat Card Styles (Properly Scoped) ===== */
+/* ===== Advanced Stat Card Styles (Fade Animation) ===== */
 .dashboard-stat-card {
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1.25rem;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease-in-out;
 }
 
+/* Both the info and the chart will live in the same space */
+.dashboard-stat-card .stat-card-info-content,
+.dashboard-stat-card .stat-card-chart-container {
+  width: 100%;
+  transition: opacity 0.3s ease-in-out;
+}
+
 .dashboard-stat-card .stat-card-info-content {
   display: flex;
   align-items: center;
-  transition: all 0.3s ease-in-out;
+  opacity: 1; /* Visible by default */
 }
 
 .dashboard-stat-card .stat-card-icon {
@@ -114,7 +126,7 @@
   color: var(--primary-color);
   width: 36px;
   height: 36px;
-  font-size: 1rem; /* <-- FIX: Constrains the icon size */
+  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,36 +141,43 @@
   margin: 0 0 0.25rem 0;
 }
 
-.dashboard-stat-card .stat-card-value {
+.dashboard-stat-card .stat-card-value,
+.dashboard-stat-card .stat-card-hover-value {
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-primary-color);
   margin: 0;
 }
 
+.projection-card .stat-card-hover-value {
+  color: #8A2BE2;
+}
+
 .dashboard-stat-card .stat-card-chart-container {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
-  height: 40px;
-  padding: 0 1.25rem 0.5rem;
+  bottom: 0;
+  padding: 1.25rem;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 4px;
-  transition: all 0.3s ease-in-out;
+  opacity: 0; /* Hidden by default */
+  pointer-events: none; /* Can't be hovered when invisible */
 }
 
 /* --- THE HOVER ANIMATION --- */
 .dashboard-stat-card.has-chart:hover .stat-card-info-content {
-  transform: translateY(-120%);
+  /* 1. Fade out the info content */
   opacity: 0;
 }
 
 .dashboard-stat-card.has-chart:hover .stat-card-chart-container {
-  height: 100%;
-  padding: 1.25rem;
+  /* 2. Fade in the chart */
+  opacity: 1;
+  pointer-events: auto; /* Allow hovering the bars */
 }
 
 /* --- Bar Styling & Hover --- */
@@ -208,7 +227,6 @@
 
 /* --- Small Variant Adjustments --- */
 .dashboard-stat-card.stat-card-small {
-  /* These styles are intentionally less specific to allow shared layout */
   flex-direction: column;
   align-items: center;
   text-align: center;
@@ -226,4 +244,143 @@
 }
 .dashboard-stat-card.stat-card-small .stat-card-value {
   font-size: 1.25rem;
+}
+.super-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.snapshot-toggle-button {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.snapshot-toggle-button:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+/* === Styles for Modal Sub-header === */
+.top-list-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-list-subheader {
+  font-size: 0.8rem;
+  color: var(--text-secondary-color);
+  margin-top: 0.25rem;
+}
+
+
+.projection-card {
+  cursor: pointer;
+}
+/* === Styles for Projection Card Hover === */
+.projection-card .stat-card-value-container {
+  position: relative;
+}
+.projection-card .stat-card-hover-value {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+.projection-card:hover .stat-card-value {
+  opacity: 0;
+}
+.projection-card:hover .stat-card-hover-value {
+  opacity: 1;
+}
+
+/* === Styles for Projection Modal Chart === */
+.projection-chart {
+  display: flex;
+  justify-content: space-between;
+  height: 250px;
+  padding: 1rem 0;
+  gap: 0.5rem;
+}
+.chart-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.chart-bar-container {
+  flex-grow: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 10%;
+}
+.chart-bar {
+  width: 35%;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+.chart-bar.last-year {
+  background-color: var(--text-secondary-color);
+  opacity: 0.5;
+}
+.chart-bar.this-year {
+  background-color: var(--primary-color);
+}
+.chart-bar:hover {
+  opacity: 1;
+}
+.chart-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary-color);
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+.legend-color.last-year { background-color: rgba(108, 117, 125, 0.5); }
+.legend-color.this-year { background-color: var(--primary-color); }
+
+/* Tooltip for chart bars */
+.chart-bar:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--text-primary-color);
+  color: var(--surface-color);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
 }

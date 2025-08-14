@@ -9,7 +9,6 @@ import {
   faChevronLeft,
   faChevronRight,
   faHomeAlt,
-  faAnchor
 } from '@fortawesome/free-solid-svg-icons';
 import donorLoopLogo from '../../assets/images/donor-loop-logo.png';
 import '../../assets/styles/sidebar.css';
@@ -136,17 +135,6 @@ export const SidebarView: React.FC<SidebarProps> = (props) => {
                   <FontAwesomeIcon icon={faHomeAlt} />
                 </span>
                 {!isCollapsed && <span className="button-text">New Dashboard</span>}
-              </button>
-            </li>
-            <li className="sidebar-menu-item">
-              <button 
-                className={`sidebar-button ${currentPath === '/Metrics-2' ? 'active' : ''}`}
-                onClick={() => navigate('/new-metrics')}
-              >
-                <span className="icon">
-                  <FontAwesomeIcon icon={faAnchor} />
-                </span>
-                {!isCollapsed && <span className="button-text">Metrics-2</span>}
               </button>
             </li>
           </ul>

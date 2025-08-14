@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  faUsers, faChartLine, faSackDollar, faBullseye, faHandHoldingHeart, faUserPlus,
-  faCalendarDays, faStar, faGift, faUserCheck, faPercent, faGem, type IconDefinition
+  faUsers, faChartLine, faSackDollar, faHandHoldingHeart, faUserPlus, faArrowTrendUp, faArrowTrendDown,
+  faCalendarDays, faStar, faGift, faUserCheck, faPercent, faGem, faSyncAlt, type IconDefinition
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './styles/NewDashboard.css'; 
@@ -10,13 +10,21 @@ import {
   useMetrics,
   type GiftWithDonor,
   type DonorData,
-  type ClassifiedDonor
+  type SnapshotDonorInfo
 } from '../components/hooks/useMetrics';
 
 // Helper functions
-const formatAmount = (amount?: number) => {
-  if (amount === undefined || amount === null) return '$0.00';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+const formatAmount = (amount?: number, compact: boolean = false) => {
+  if (amount === undefined || amount === null) return '$0';
+  const options: Intl.NumberFormatOptions = { style: 'currency', currency: 'USD' };
+  if (compact) {
+    options.notation = 'compact';
+    options.maximumFractionDigits = 1;
+  } else {
+    options.minimumFractionDigits = 0;
+    options.maximumFractionDigits = 0;
+  }
+  return new Intl.NumberFormat('en-US', options).format(amount);
 };
 
 const formatDate = (date?: string) => {
@@ -39,7 +47,7 @@ interface DashboardStatCardProps {
 }
 
 const DashboardStatCard: React.FC<DashboardStatCardProps> = ({ title, value, icon, size, onClick, chartData }) => {
-  const cardClasses = `dashboard-stat-card ${size === 'small' ? 'stat-card-small' : ''}`;
+  const cardClasses = `dashboard-stat-card ${size === 'small' ? 'stat-card-small' : ''} ${chartData ? 'has-chart' : ''}`;
   const maxChartValue = chartData && chartData.length > 0 ? Math.max(...chartData) : 1;
 
   return (
@@ -89,6 +97,9 @@ const NewDashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContentId, setModalContentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('retained'); 
+  const [snapshotFilter, setSnapshotFilter] = useState<'monthly' | 'one-time'>('monthly');
+  const [projectionChartTab, setProjectionChartTab] = useState('monthly');
+  const [isFading, setIsFading] = useState(false);
 
   const modalTitles: { [key: string]: string } = {
     totalDonationsYTD: 'All Donations (Year-to-Date)',
@@ -100,8 +111,16 @@ const NewDashboard: React.FC = () => {
     wma: '30-Day WMA Breakdown',
     medianDonation: 'Median Donation Details (30 Days)',
     retentionPercentageCurrentMonth: "This Month's Donor Retention",
+    newDonorsThisMonth: "New Donors This Month",
     uniqueDonorsCurrentMonth: "This Month's Donors",
+    yearlyProjection: "Yearly Donation Projection",
     totalDonorPool: 'All-Time Donor Pool',
+    majorDonorsCurrentMonth_Monthly: "This Month's Major Monthly Donors",
+    mediumDonorsCurrentMonth_Monthly: "This Month's Medium Monthly Donors",
+    normalDonorsCurrentMonth_Monthly: "This Month's Normal Monthly Donors",
+    majorDonorsCurrentMonth_Onetime: "This Month's Major One-Time Donors",
+    mediumDonorsCurrentMonth_Onetime: "This Month's Medium One-Time Donors",
+    normalDonorsCurrentMonth_Onetime: "This Month's Normal One-Time Donors",
   };
 
   const openModal = (metricId: string) => {
@@ -111,6 +130,18 @@ const NewDashboard: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setModalContentId(null);
+  };
+
+  const handleSnapshotToggle = () => {
+    setIsFading(true); 
+
+  
+    setTimeout(() => {
+ 
+      setSnapshotFilter(prev => (prev === 'monthly' ? 'one-time' : 'monthly'));
+
+      setIsFading(false); 
+    }, 150); 
   };
 
   // --- 3. LOADING AND ERROR HANDLING (CRITICAL FIX) ---
@@ -126,11 +157,19 @@ const NewDashboard: React.FC = () => {
     ? (data.totalDonationsAllTime || 0) / data.totalGiftsAllTime 
     : 0;
 
+  // --- 4b. EXTRACT YEARLY PROJECTION ---
+  const yearlyProjection = data.yearlyProjection || {
+    percentage: 0,
+    projectedTotal: 0,
+    lastYearTotal: 0,
+    monthlyComparison: [],
+    quarterlyComparison: []
+  };
+
   // --- 5. RENDER THE DASHBOARD ---
   return (
     <div className="content-body">
       <div className="dashboard-grid-layout">
-
         {/* === ROW 1: Financial Health Summary === */}
         <div className="summary-wrapper card-style">
           <h3 className="super-card-title">Financial Health Summary</h3>
@@ -147,14 +186,26 @@ const NewDashboard: React.FC = () => {
               icon={faSackDollar} 
               onClick={() => openModal('totalDonationsYTD')}
             />
-            <DashboardStatCard title="Annual Donation Trend" value="N/A" icon={faChartLine} />
             <DashboardStatCard 
               title="Average Donation" 
               value={formatAmount(averageDonationAllTime)} 
               icon={faHandHoldingHeart} 
-              chartData={data.averageDonationChartData} // <-- ADD THIS PROP
+              chartData={data.averageDonationChartData}
             />
-            <DashboardStatCard title="Current Retention %" value="N/A" icon={faBullseye} />
+            <div className="dashboard-stat-card projection-card" onClick={() => openModal('yearlyProjection')}>
+              <div className="stat-card-info-content">
+                <div className="stat-card-icon" style={{ color: yearlyProjection.percentage >= 0 ? 'var(--primary-color)' : 'var(--error-color)', backgroundColor: yearlyProjection.percentage >= 0 ? 'rgba(49, 223, 162, 0.1)' : 'rgba(255, 107, 107, 0.1)' }}>
+                  <FontAwesomeIcon icon={yearlyProjection.percentage >= 0 ? faArrowTrendUp : faArrowTrendDown} />
+                </div>
+                <div className="stat-card-info">
+                  <p className="stat-card-title">Yearly Projection</p>
+                  <div className="stat-card-value-container">
+                    <p className="stat-card-value">{yearlyProjection.percentage.toFixed(1)}%</p>
+                    <p className="stat-card-hover-value">{formatAmount(yearlyProjection.projectedTotal)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
             <DashboardStatCard 
               title="New Donors (Last Month)" 
               value={(metrics.newDonorsLastMonth || 0).toString()} 
@@ -167,14 +218,23 @@ const NewDashboard: React.FC = () => {
         {/* === ROW 2: Segmentation & Action Plan === */}
         <div className="dashboard-row segmentation-action-plan">
           <div className="super-card">
-            <h3 className="super-card-title">Monthly Donor Snapshot</h3>
+            <div className="super-card-header">
+              <h3 className="super-card-title">This Month's Snapshot</h3>
+              <button 
+                className="snapshot-toggle-button" 
+                onClick={handleSnapshotToggle}
+              >
+                <FontAwesomeIcon icon={faSyncAlt} />
+                {snapshotFilter === 'monthly' ? 'Show One-Time' : 'Show Monthly'}
+              </button>
+            </div>
             <div className="nested-stat-grid">
               <DashboardStatCard 
-                title="Donor Count" 
-                value={(metrics.uniqueDonorsCurrentMonth || 0).toLocaleString()} 
-                icon={faUsers} 
+                title="Total Gifts" 
+                value={(metrics.totalGiftsCurrentMonth || 0).toLocaleString()} 
+                icon={faGift} 
                 size="small" 
-                onClick={() => openModal('uniqueDonorsCurrentMonth')} // <-- ADD THIS PROP
+                onClick={() => openModal('totalValueCurrentMonth')}
               />
               <DashboardStatCard 
                 title="Average Donation" 
@@ -190,27 +250,27 @@ const NewDashboard: React.FC = () => {
                 onClick={() => openModal('totalValueCurrentMonth')}
               />
             </div>
-            <div className="nested-stat-grid">
+            <div className={`nested-stat-grid ${isFading ? 'is-fading' : ''}`}>
               <DashboardStatCard 
                 title="Major Donors" 
-                value={(metrics.majorDonorsCurrentMonth || 0).toString()} 
+                value={(snapshotFilter === 'monthly' ? metrics.majorDonorsCurrentMonth_Monthly : metrics.majorDonorsCurrentMonth_Onetime).toString()} 
                 icon={faStar} 
                 size="small" 
-                onClick={() => openModal('majorDonorsCurrentMonth')}
+                onClick={() => openModal(snapshotFilter === 'monthly' ? 'majorDonorsCurrentMonth_Monthly' : 'majorDonorsCurrentMonth_Onetime')}
               />
               <DashboardStatCard 
                 title="Medium Donors" 
-                value={(metrics.mediumDonorsCurrentMonth || 0).toString()} 
+                value={(snapshotFilter === 'monthly' ? metrics.mediumDonorsCurrentMonth_Monthly : metrics.mediumDonorsCurrentMonth_Onetime).toString()} 
                 icon={faGift} 
                 size="small" 
-                onClick={() => openModal('mediumDonorsCurrentMonth')}
+                onClick={() => openModal(snapshotFilter === 'monthly' ? 'mediumDonorsCurrentMonth_Monthly' : 'mediumDonorsCurrentMonth_Onetime')}
               />
               <DashboardStatCard 
                 title="Normal Donors" 
-                value={(metrics.normalDonorsCurrentMonth || 0).toString()} 
+                value={(snapshotFilter === 'monthly' ? metrics.normalDonorsCurrentMonth_Monthly : metrics.normalDonorsCurrentMonth_Onetime).toString()} 
                 icon={faUserCheck} 
                 size="small" 
-                onClick={() => openModal('normalDonorsCurrentMonth')}
+                onClick={() => openModal(snapshotFilter === 'monthly' ? 'normalDonorsCurrentMonth_Monthly' : 'normalDonorsCurrentMonth_Onetime')}
               />
             </div>
             <div className="nested-stat-grid">
@@ -220,6 +280,13 @@ const NewDashboard: React.FC = () => {
                 icon={faPercent} 
                 size="small" 
                 onClick={() => openModal('retentionPercentageCurrentMonth')}
+              />
+              <DashboardStatCard 
+                title="New Donors This Month" 
+                value={(metrics.newDonorsThisMonth || 0).toString()} 
+                icon={faUserPlus} 
+                size="small" 
+                onClick={() => openModal('newDonorsThisMonth')}
               />
               <DashboardStatCard 
                 title="This Month's Donors" 
@@ -261,68 +328,78 @@ const NewDashboard: React.FC = () => {
       {/* === MODAL FOR DETAILED POPUPS === */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={modalContentId ? modalTitles[modalContentId] : 'Details'}>
         {modalContentId === 'totalDonorPool' && (
-          <div className="top-list-content">
-            <ul className="top-list">
-              {data.totalDonorPoolList.map((donor: DonorData, i: number) => (
-                <li key={donor.donorid} className="top-list-item">
-                  <div className="top-list-rank">{i + 1}</div>
-                  <div className="top-list-avatar">{donorInitials(donor)}</div>
-                  <div className="top-list-details">{donorFullName(donor)}</div>
-                  <div className="top-list-secondary">{donor.email}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <div className="top-list-content"><ul className="top-list">{data.totalDonorPoolList.map((donor: DonorData, i: number) => (<li key={donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(donor)}</div><div className="top-list-details">{donorFullName(donor)}</div><div className="top-list-secondary">{donor.email}</div></li>))}</ul></div>
         )}
         {modalContentId === 'uniqueDonorsCurrentMonth' && (
-          <div className="top-list-content">
-            <ul className="top-list">
-              {data.uniqueDonorsCurrentMonthList.map((donor: DonorData, i: number) => (
-                <li key={donor.donorid} className="top-list-item">
-                  <div className="top-list-rank">{i + 1}</div>
-                  <div className="top-list-avatar">{donorInitials(donor)}</div>
-                  <div className="top-list-details">{donorFullName(donor)}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <div className="top-list-content"><ul className="top-list">{data.uniqueDonorsCurrentMonthList.map((donor: DonorData, i: number) => (<li key={donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(donor)}</div><div className="top-list-details">{donorFullName(donor)}</div></li>))}</ul></div>
         )}
         {modalContentId === 'totalDonationsYTD' && (<div className="top-list-content"><ul className="top-list">{data.allGiftsYTD.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
         {modalContentId === 'newDonors' && (<div className="top-list-content">{data.newDonorsList.length === 0 ? (<div className="top-list-empty">No new donors in the last 30 days.</div>) : (<ul className="top-list">{data.newDonorsList.map((item: DonorData, i: number) => (<li key={item.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item)}</div><div className="top-list-details">{donorFullName(item)}</div><div className="top-list-secondary">{formatDate(item.created_at)}</div></li>))}</ul>)}</div>)}
-        {modalContentId === 'totalValueCurrentMonth' && (<div className="top-list-content"><ul className="top-list">{data.giftsCurrentMonthList.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'majorDonorsCurrentMonth' && (<div className="top-list-content"><ul className="top-list">{data.majorDonorsCurrentMonthList.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
-        {modalContentId === 'mediumDonorsCurrentMonth' && (<div className="top-list-content"><ul className="top-list">{data.mediumDonorsCurrentMonthList.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
-        {modalContentId === 'normalDonorsCurrentMonth' && (<div className="top-list-content"><ul className="top-list">{data.normalDonorsCurrentMonthList.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalValueCurrentMonth' && (<div className="top-list-content"><ul className="top-list">{data.giftsCurrentMonthList.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"><span>{donorFullName(item.donor)}</span><span className="top-list-subheader">Gift on {formatDate(item.giftdate)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)}</div></li>))}</ul></div>)}
         {modalContentId === 'wma' && (<div className="top-list-content">{data.wmaDetails.length === 0 ? (<div className="top-list-empty">No data available for WMA.</div>) : (<ul className="top-list">{data.wmaDetails.map((item: { monthLabel: string; total: number; weight: number }, i: number) => (<li key={item.monthLabel} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-details">{item.monthLabel}: {formatAmount(item.total)} × {item.weight}</div><div className="top-list-secondary">= <strong>{formatAmount(item.total * item.weight)}</strong></div></li>))}</ul>)}<p style={{ marginTop: '1em', fontWeight: 'bold' }}>Final WMA: {formatAmount(metrics.weightedMovingAvg)}</p></div>)}
         {modalContentId === 'medianDonation' && (<div className="top-list-content">{data.medianIndex !== null && (<p style={{ margin: '0 0 1rem' }}><strong>Median Position:</strong> Gift #{data.medianIndex + 1}</p>)}<p style={{ margin: '0 0 1rem' }}><strong>Computed Median:</strong> {formatAmount(metrics.medianDonation)}</p><ul className="top-list">{data.rawDonationsList.map((item: GiftWithDonor, idx: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">Gift ID {item.giftid}<br />{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)}<br />{formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        
+        {modalContentId === 'majorDonorsCurrentMonth_Monthly' && (<div className="top-list-content"><ul className="top-list">{data.majorDonorsCurrentMonthList_Monthly.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"><span>{donorFullName(item.donor)}</span><span className="top-list-subheader">Last Gift: {formatAmount(item.lastGiftAmount)} on {formatDate(item.lastGiftDate)}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmountThisMonth)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumDonorsCurrentMonth_Monthly' && (<div className="top-list-content"><ul className="top-list">{data.mediumDonorsCurrentMonthList_Monthly.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"><span>{donorFullName(item.donor)}</span><span className="top-list-subheader">Last Gift: {formatAmount(item.lastGiftAmount)} on {formatDate(item.lastGiftDate)}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmountThisMonth)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalDonorsCurrentMonth_Monthly' && (<div className="top-list-content"><ul className="top-list">{data.normalDonorsCurrentMonthList_Monthly.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"><span>{donorFullName(item.donor)}</span><span className="top-list-subheader">Last Gift: {formatAmount(item.lastGiftAmount)} on {formatDate(item.lastGiftDate)}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmountThisMonth)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorDonorsCurrentMonth_Onetime' && (<div className="top-list-content"><ul className="top-list">{data.majorDonorsCurrentMonthList_Onetime.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"><span>{donorFullName(item.donor)}</span><span className="top-list-subheader">Last Gift: {formatAmount(item.lastGiftAmount)} on {formatDate(item.lastGiftDate)}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmountThisMonth)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumDonorsCurrentMonth_Onetime' && (<div className="top-list-content"><ul className="top-list">{data.mediumDonorsCurrentMonthList_Onetime.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"><span>{donorFullName(item.donor)}</span><span className="top-list-subheader">Last Gift: {formatAmount(item.lastGiftAmount)} on {formatDate(item.lastGiftDate)}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmountThisMonth)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalDonorsCurrentMonth_Onetime' && (<div className="top-list-content"><ul className="top-list">{data.normalDonorsCurrentMonthList_Onetime.map((item, i) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"><span>{donorFullName(item.donor)}</span><span className="top-list-subheader">Last Gift: {formatAmount(item.lastGiftAmount)} on {formatDate(item.lastGiftDate)}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmountThisMonth)}</div></li>))}</ul></div>)}
+        {modalContentId === 'newDonorsThisMonth' && (<div className="top-list-content"><ul className="top-list">{data.newDonorsThisMonthList.map((item: SnapshotDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details"><span>{donorFullName(item.donor)}</span><span className="top-list-subheader">Last Gift: {formatAmount(item.lastGiftAmount)} on {formatDate(item.lastGiftDate)}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmountThisMonth)}</div></li>))}</ul></div>)}
         {/* === NEW: Retention Breakdown Modal === */}
         {modalContentId === 'retentionPercentageCurrentMonth' && (
           <div>
-            <div className="modal-summary">
-              <strong>{data.retainedDonorsList.length}</strong> of <strong>{data.lastMonthDonorPool.length}</strong> donors from last month have given again this month.
-            </div>
+            <div className="modal-summary"><strong>{data.retainedDonorsList.length}</strong> of <strong>{data.lastMonthDonorPool.length}</strong> donors from last month have given again this month.</div>
             <div className="modal-tabs">
-              <button className={`tab-button ${activeTab === 'retained' ? 'active' : ''}`} onClick={() => setActiveTab('retained')}>
-                Retained ({data.retainedDonorsList.length})
-              </button>
-              <button className={`tab-button ${activeTab === 'churned' ? 'active' : ''}`} onClick={() => setActiveTab('churned')}>
-                Hasn't Donated ({data.churnedFromLastMonthList.length})
-              </button>
-               <button className={`tab-button ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
-                Last Month's Pool ({data.lastMonthDonorPool.length})
-              </button>
+              <button className={`tab-button ${activeTab === 'retained' ? 'active' : ''}`} onClick={() => setActiveTab('retained')}>Retained ({data.retainedDonorsList.length})</button>
+              <button className={`tab-button ${activeTab === 'churned' ? 'active' : ''}`} onClick={() => setActiveTab('churned')}>Hasn't Donated ({data.churnedFromLastMonthList.length})</button>
+              <button className={`tab-button ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>Last Month's Pool ({data.lastMonthDonorPool.length})</button>
             </div>
             <div className="top-list-content">
-              {activeTab === 'retained' && (
-                <ul className="top-list">{data.retainedDonorsList.map((donor: DonorData, i: number) => (<li key={donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(donor)}</div><div className="top-list-details">{donorFullName(donor)}</div></li>))}</ul>
-              )}
-              {activeTab === 'churned' && (
-                <ul className="top-list">{data.churnedFromLastMonthList.map((donor: DonorData, i: number) => (<li key={donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(donor)}</div><div className="top-list-details">{donorFullName(donor)}</div></li>))}</ul>
-              )}
-              {activeTab === 'all' && (
-                <ul className="top-list">{data.lastMonthDonorPool.map((donor: DonorData, i: number) => (<li key={donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(donor)}</div><div className="top-list-details">{donorFullName(donor)}</div></li>))}</ul>
-              )}
+              {activeTab === 'retained' && (<ul className="top-list">{data.retainedDonorsList.map((donor: DonorData, i: number) => (<li key={donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(donor)}</div><div className="top-list-details">{donorFullName(donor)}</div></li>))}</ul>)}
+              {activeTab === 'churned' && (<ul className="top-list">{data.churnedFromLastMonthList.map((donor: DonorData, i: number) => (<li key={donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(donor)}</div><div className="top-list-details">{donorFullName(donor)}</div></li>))}</ul>)}
+              {activeTab === 'all' && (<ul className="top-list">{data.lastMonthDonorPool.map((donor: DonorData, i: number) => (<li key={donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(donor)}</div><div className="top-list-details">{donorFullName(donor)}</div></li>))}</ul>)}
+            </div>
+          </div>
+        )}
+        {modalContentId === 'yearlyProjection' && (
+          <div>
+            <div className="modal-summary">
+              Raised So Far: <strong>{formatAmount(yearlyProjection.thisYearYTDSum)}</strong> |
+              Projected Total: <strong>{formatAmount(yearlyProjection.projectedTotal)}</strong> (vs. {formatAmount(yearlyProjection.lastYearTotal)} last year)
+            </div>            
+            <div className="modal-tabs">
+              <button className={`tab-button ${projectionChartTab === 'monthly' ? 'active' : ''}`} onClick={() => setProjectionChartTab('monthly')}>Monthly</button>
+              <button className={`tab-button ${projectionChartTab === 'quarterly' ? 'active' : ''}`} onClick={() => setProjectionChartTab('quarterly')}>Quarterly</button>
+            </div>
+            <div className="projection-chart">
+              {projectionChartTab === 'monthly' && yearlyProjection.monthlyComparison.map((item, index) => {
+                const maxVal = Math.max(item.lastYear, item.thisYear, 1);
+                return (
+                  <div key={index} className="chart-group">
+                    <div className="chart-bar-container">
+                      <div className="chart-bar last-year" style={{ height: `${(item.lastYear / maxVal) * 100}%` }} data-tooltip={formatAmount(item.lastYear)}></div>
+                      <div className="chart-bar this-year" style={{ height: `${(item.thisYear / maxVal) * 100}%` }} data-tooltip={formatAmount(item.thisYear)}></div>
+                    </div>
+                    <div className="chart-label">{item.month}</div>
+                  </div>
+                );
+              })}
+              {projectionChartTab === 'quarterly' && yearlyProjection.quarterlyComparison.map((item, index) => {
+                const maxVal = Math.max(item.lastYear, item.thisYear, 1);
+                return (
+                  <div key={index} className="chart-group">
+                    <div className="chart-bar-container">
+                      <div className="chart-bar last-year" style={{ height: `${(item.lastYear / maxVal) * 100}%` }} data-tooltip={formatAmount(item.lastYear)}></div>
+                      <div className="chart-bar this-year" style={{ height: `${(item.thisYear / maxVal) * 100}%` }} data-tooltip={formatAmount(item.thisYear)}></div>
+                    </div>
+                    <div className="chart-label">{item.quarter}</div>
+                  </div>
+                );
+              })}
+            </div>
+             <div className="chart-legend">
+              <div className="legend-item"><span className="legend-color last-year"></span>Last Year</div>
+              <div className="legend-item"><span className="legend-color this-year"></span>This Year</div>
             </div>
           </div>
         )}
@@ -330,5 +407,4 @@ const NewDashboard: React.FC = () => {
     </div>
   );
 };
-
 export default NewDashboard;
