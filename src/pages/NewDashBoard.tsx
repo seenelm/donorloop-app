@@ -4,7 +4,7 @@ import {
   faCalendarDays, faStar, faGift, faUserCheck, faPercent, faGem, faSyncAlt, type IconDefinition
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import './styles/NewDashboard.css'; 
+import './styles/newdashboard.css'; 
 import Modal from '../components/popup/modal';
 import { 
   useMetrics,
