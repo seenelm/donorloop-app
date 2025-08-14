@@ -17,6 +17,7 @@ import DataLibrary from './pages/DataLibrary';
 import './App.css';
 import './pages/styles/Dashboard.css';
 import Metrics from './pages/Metrics';
+import NewDashboard from './pages/NewDashBoard';
 
 // AuthenticatedLayout component that includes sidebar and other app elements
 const AuthenticatedLayout = () => {
@@ -35,6 +36,7 @@ const AuthenticatedLayout = () => {
             <Route path="/data-library" element={<DataLibrary />} />
             <Route path="/auth-admin" element={<AuthAdmin />} />
             <Route path="/metrics" element={<Metrics />} />
+            <Route path="/new-dashboard" element={<NewDashboard />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>

@@ -1,0 +1,386 @@
+/* === Generic Card Style for the Wrapper === */
+.card-style {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.super-card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  color: var(--text-primary-color);
+}
+
+.summary-wrapper.card-style {
+  padding: 1rem 1.5rem;
+}
+
+.summary-wrapper .super-card-title {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+/* === Main Layout Styles === */
+.dashboard-grid-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}q
+
+.dashboard-row {
+  width: 100%;
+}
+
+.financial-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.segmentation-action-plan {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.super-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.nested-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.nested-stat-grid.is-fading {
+  opacity: 0;
+}
+
+.nested-stat-grid:not(:last-child) {
+  margin-bottom: 1.25rem;
+}
+
+.action-plan-textarea {
+  flex-grow: 1;
+  width: 100%;
+  min-height: 250px;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  line-height: 1.6;
+  background-color: var(--background-color);
+  color: var(--text-primary-color);
+  resize: vertical;
+}
+.action-plan-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(49, 223, 162, 0.2);
+}
+
+.key-analysis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ===== Advanced Stat Card Styles (Fade Animation) ===== */
+.dashboard-stat-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Both the info and the chart will live in the same space */
+.dashboard-stat-card .stat-card-info-content,
+.dashboard-stat-card .stat-card-chart-container {
+  width: 100%;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.dashboard-stat-card .stat-card-info-content {
+  display: flex;
+  align-items: center;
+  opacity: 1; /* Visible by default */
+}
+
+.dashboard-stat-card .stat-card-icon {
+  margin-right: 1rem;
+  color: var(--primary-color);
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background-color: rgba(49, 223, 162, 0.1);
+  flex-shrink: 0;
+}
+
+.dashboard-stat-card .stat-card-title {
+  font-size: 0.85rem;
+  color: var(--text-secondary-color);
+  margin: 0 0 0.25rem 0;
+}
+
+.dashboard-stat-card .stat-card-value,
+.dashboard-stat-card .stat-card-hover-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary-color);
+  margin: 0;
+}
+
+.projection-card .stat-card-hover-value {
+  color: #8A2BE2;
+}
+
+.dashboard-stat-card .stat-card-chart-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1.25rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  opacity: 0; /* Hidden by default */
+  pointer-events: none; /* Can't be hovered when invisible */
+}
+
+/* --- THE HOVER ANIMATION --- */
+.dashboard-stat-card.has-chart:hover .stat-card-info-content {
+  /* 1. Fade out the info content */
+  opacity: 0;
+}
+
+.dashboard-stat-card.has-chart:hover .stat-card-chart-container {
+  /* 2. Fade in the chart */
+  opacity: 1;
+  pointer-events: auto; /* Allow hovering the bars */
+}
+
+/* --- Bar Styling & Hover --- */
+.dashboard-stat-card .chart-bar-wrapper {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+}
+
+.dashboard-stat-card .chart-bar {
+  width: 100%;
+  background-color: var(--primary-color);
+  opacity: 0.5;
+  border-radius: 2px;
+  transition: all 0.2s ease-in-out;
+}
+
+.dashboard-stat-card .chart-bar-wrapper:hover .chart-bar {
+  transform: scaleY(0.9);
+  opacity: 1;
+}
+
+/* --- Tooltip --- */
+.dashboard-stat-card .chart-bar-wrapper::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--text-primary-color);
+  color: var(--surface-color);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.dashboard-stat-card .chart-bar-wrapper:hover::after {
+  opacity: 1;
+}
+
+/* --- Small Variant Adjustments --- */
+.dashboard-stat-card.stat-card-small {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+}
+.dashboard-stat-card.stat-card-small .stat-card-info-content {
+  flex-direction: column;
+}
+.dashboard-stat-card.stat-card-small .stat-card-icon {
+  margin-right: 0;
+  margin-bottom: 0.75rem;
+}
+.dashboard-stat-card.stat-card-small .stat-card-title {
+  font-size: 0.75rem;
+}
+.dashboard-stat-card.stat-card-small .stat-card-value {
+  font-size: 1.25rem;
+}
+.super-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.snapshot-toggle-button {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.snapshot-toggle-button:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+/* === Styles for Modal Sub-header === */
+.top-list-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-list-subheader {
+  font-size: 0.8rem;
+  color: var(--text-secondary-color);
+  margin-top: 0.25rem;
+}
+
+
+.projection-card {
+  cursor: pointer;
+}
+/* === Styles for Projection Card Hover === */
+.projection-card .stat-card-value-container {
+  position: relative;
+}
+.projection-card .stat-card-hover-value {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+.projection-card:hover .stat-card-value {
+  opacity: 0;
+}
+.projection-card:hover .stat-card-hover-value {
+  opacity: 1;
+}
+
+/* === Styles for Projection Modal Chart === */
+.projection-chart {
+  display: flex;
+  justify-content: space-between;
+  height: 250px;
+  padding: 1rem 0;
+  gap: 0.5rem;
+}
+.chart-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.chart-bar-container {
+  flex-grow: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 10%;
+}
+.chart-bar {
+  width: 35%;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+.chart-bar.last-year {
+  background-color: var(--text-secondary-color);
+  opacity: 0.5;
+}
+.chart-bar.this-year {
+  background-color: var(--primary-color);
+}
+.chart-bar:hover {
+  opacity: 1;
+}
+.chart-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary-color);
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+.legend-color.last-year { background-color: rgba(108, 117, 125, 0.5); }
+.legend-color.this-year { background-color: var(--primary-color); }
+
+/* Tooltip for chart bars */
+.chart-bar:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--text-primary-color);
+  color: var(--surface-color);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

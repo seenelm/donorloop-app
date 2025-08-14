@@ -1,0 +1,27 @@
+.donation-type-toggle {
+  display: flex;
+  background-color: var(--background-color, #e9ecef);
+  border-radius: 6px;
+  padding: 4px;
+  border: 1px solid var(--border-color, #dee2e6);
+}
+
+.toggle-button {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  background-color: transparent;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary-color, #6c757d);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+}
+
+.toggle-button.active {
+  background-color: var(--surface-color, #fff);
+  color: var(--text-primary-color, #212529);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
