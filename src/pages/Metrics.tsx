@@ -7,7 +7,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import StatCard from '../components/stats/StatCard';
 import Controls from '../components/controls/Controls';
-import './styles/newmetrics.css';
 import Modal from '../components/popup/modal';
 import { 
   useMetrics,
