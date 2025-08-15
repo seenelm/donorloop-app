@@ -18,15 +18,14 @@ import './App.css';
 import './pages/styles/Dashboard.css';
 import Metrics from './pages/Metrics';
 import NewDashboard from './pages/NewDashBoard';
+import UnifiedHeader from './components/navigation/UnifiedHeader';
 
 // AuthenticatedLayout component that includes sidebar and other app elements
 const AuthenticatedLayout = () => {
-  const { isCollapsed } = useSidebar();
-  
   return (
-    <div className="app-container">
-      <SidebarView />
-      <div className={`content-wrapper ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className="app-container-revamped">
+      <UnifiedHeader />
+      <div className="content-wrapper-revamped">
         <div className="main-content">
           <Routes>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -38,6 +37,7 @@ const AuthenticatedLayout = () => {
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/new-dashboard" element={<NewDashboard />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/RevampedDashboard" replace />} />
           </Routes>
         </div>
         <ResizableChatSidebar />

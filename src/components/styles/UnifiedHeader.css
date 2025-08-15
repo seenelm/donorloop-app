@@ -1,0 +1,102 @@
+/* Using the same theme for consistency */
+:root {
+  --revamped-surface: var(--background-color);
+  --revamped-border: var(--primary-color);
+  --revamped-text-primary: var(--primary-color);
+  --revamped-text-secondary: #71717A;
+  --revamped-primary: #6D28D9;
+  --revamped-primary-light: var(--border-color: #434343;);
+  --revamped-bg: var(--primary-color: #8A2BE2;);
+}
+
+/* === Unified Header Container === */
+.unified-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--revamped-surface);
+  border-bottom: 1px solid var(--revamped-border);
+}
+
+/* === Header Sections (Left, Center, Right) === */
+.header-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-section.left {
+  gap: 0.75rem;
+}
+
+.header-section.center {
+  gap: 0.5rem;
+}
+
+/* === Left Section Elements === */
+.header-logo {
+  height: 32px;
+  width: 32px;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--revamped-text-primary);
+}
+
+/* === Center Section (Navigation) Elements - UPDATED === */
+.nav-button {
+  background-color: transparent;
+  border: 1px solid var(--secondary-color); /* No border by default */
+  border-radius: 20px; /* Rounded corners for the pill shape */
+  font-family: cursive;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 1000;
+  color: var(--revamped-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-button:hover {
+  background-color: var(--surface-color);
+  
+  color: var(--text-secondary-color);
+}
+
+.nav-button.active {
+  color: var(--primary-color);
+  background-color: var(--primary-color-hover);
+  /* Optional: add a subtle border to the active tab like in the screenshot */
+  border-color: var(--revamped-border); 
+}
+
+
+/* === Right Section Elements === */
+.header-icon-button {
+  background: none;
+  border: none;
+  color: var(--revamped-text-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.header-icon-button:hover {
+  color: var(--revamped-text-primary);
+}
+
+.user-profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--revamped-primary);
+  color: #FFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
