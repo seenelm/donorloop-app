@@ -1,5 +1,5 @@
 import React from 'react';
-import './Modal.css'; // We'll create this next
+import './modal.css'; // We'll create this next
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
