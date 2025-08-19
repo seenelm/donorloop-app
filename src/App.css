@@ -1,5 +1,16 @@
+/* === Global Reset === */
+/* This is a necessary addition to remove the default browser margin 
+   that causes the outer scrollbar. */
+body {
+  margin: 0;
+}
+
+/* === Your Original Layout Code (with modifications) === */
+
 .app-container {
   display: flex;
+  /* MODIFIED: Changed from 'row' (default) to 'column' to stack the new header on top. */
+  flex-direction: column; 
   height: 100vh;
   overflow: hidden; /* Prevent overall page scrolling */
 }
@@ -7,24 +18,81 @@
 .content-wrapper {
   display: flex;
   flex: 1;
-  margin-left: 250px; /* Same as sidebar width */
+  /* REMOVED: The 'margin-left' rule is what caused the white space. It's no longer needed. */
   transition: margin-left 0.3s ease;
   overflow: hidden; /* Prevent wrapper scrolling */
+  position: relative;
 }
 
+/* This rule is no longer needed with the new header, but we'll keep it as requested. */
 .content-wrapper.sidebar-collapsed {
-  margin-left: 60px; /* Same as collapsed sidebar width */
+  margin-left: 0; 
 }
 
 .main-content {
   flex: 1;
-  padding: 0.5rem;
-  border-left: 1px solid var(--border-color);
-  overflow-y: auto; /* Enable vertical scrolling for main content */
-  height: 100vh; /* Full viewport height */
+  padding: 1.5rem; /* Increased padding for a more modern look */
+  /* REMOVED: The border-left is no longer needed without the sidebar. */
+  overflow-y: auto; /* This is now the ONLY scrolling element */
+  /* REMOVED: height: 100vh was causing layout conflicts. flex: 1 handles this now. */
+  
+  /* Custom Scrollbar Styles - Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #E4E4E7 transparent;
+  
+  /* Page Transition Styles */
+  transition: opacity 0.3s ease-in-out;
 }
 
-/* Responsive styles */
+.main-content.transitioning {
+  opacity: 0;
+}
+
+/* === Page Transition Styles === */
+.page-transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #000000;
+  z-index: 50; /* Below header (z-index: 100) but above content */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.page-transition-overlay.fade-out {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.page-transition-overlay.fade-in {
+  opacity: 0;
+}
+
+/* --- For Chrome, Safari, and Edge --- */
+.main-content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background-color: #E4E4E7;
+  border-radius: 20px;
+  /* The border color should match the background of .main-content's parent */
+  border: 3px solid #F7F7F8; 
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background-color: #6D28D9;
+}
+
+
+/* === Responsive Styles (Unchanged) === */
 @media (max-width: 768px) {
   .content-wrapper {
     flex-direction: column;

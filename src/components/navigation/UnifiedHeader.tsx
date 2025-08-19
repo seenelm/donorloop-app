@@ -3,7 +3,7 @@ import { useSidebarLogic } from './SidebarLogic';
 
 // These are the real imports your project needs
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBell, faCog } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faCog, faSearch } from '@fortawesome/free-solid-svg-icons';
 import donorLoopLogo from '../../assets/images/donor-loop-logo.png';
 import '../styles/UnifiedHeader.css';
 
@@ -37,14 +37,28 @@ const UnifiedHeader: React.FC = () => {
         ))}
       </nav>
       <div className="header-section right">
+        <div className="header-search">
+          <FontAwesomeIcon icon={faSearch} className="header-search-icon" />
+          <input 
+            type="text" 
+            placeholder="Search" 
+            className="header-search-input"
+          />
+        </div>
         <button className="header-icon-button">
           <FontAwesomeIcon icon={faBell} />
         </button>
         <button className="header-icon-button">
           <FontAwesomeIcon icon={faCog} />
         </button>
-        <div className="user-profile-avatar">
-          <span>JD</span>
+        <div className="user-profile-section">
+          <div className="user-profile-avatar">
+            <span>AS</span>
+          </div>
+          <div className="user-profile-info">
+            <div className="user-profile-name">Abraham Smith</div>
+            <div className="user-profile-role">Transport</div>
+          </div>
         </div>
       </div>
     </header>
