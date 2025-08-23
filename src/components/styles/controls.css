@@ -47,16 +47,21 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background-color: var(--card-color);
+    background: var(--card-color);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
     color: var(--text-primary-color);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .filter-button1:hover {
-    background-color: var(--card-color-hover);
+    background: var(--card-color-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .filter-menu1 {
@@ -64,13 +69,25 @@
     top: 100%;
     left: 0;
     margin-top: 0.25rem;
-    background-color: var(--card-color);
+    background: var(--card-color);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     z-index: 3000;
     min-width: 180px;
     overflow: hidden;
+    animation: dropdownFadeIn 0.2s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
     
 .filter-menu1 button {
@@ -82,11 +99,13 @@
     border: none;
     cursor: pointer;
     color: var(--text-primary-color);
-    transition: background-color 0.2s;
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
     
 .filter-menu1 button:hover {
-    background-color: var(--card-color-hover);
+    background: var(--card-color-hover);
+    color: var(--text-primary-color);
 }
 
 /* Search styles */
@@ -112,18 +131,20 @@
 .search-input {
     width: 100%;
     padding: 0.75rem 1rem 0.75rem 2.5rem;
-    background-color: var(--card-color);
+    background: var(--card-color);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 0.9rem;
+    font-weight: 500;
     color: var(--text-primary-color);
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .search-input:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(49, 223, 162, 0.2);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .search-input::placeholder {
@@ -141,16 +162,21 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background-color: var(--card-color);
+    background: var(--card-color);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
     color: var(--text-primary-color);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .import-button1:hover {
-    background-color: var(--card-color-hover);
+    background: var(--card-color-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .add-button1 {
@@ -158,16 +184,21 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background-color: var(--card-color);
+    background: var(--card-color);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
     color: var(--text-primary-color);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .add-button1:hover {
-    background-color: var(--card-color-hover);
+    background: var(--card-color-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Responsive styles */

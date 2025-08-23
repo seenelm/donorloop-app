@@ -64,7 +64,7 @@
 }
 
 .metrics-container ::-webkit-scrollbar-track {
-  background: rgba(139, 43, 226, 0.05);
+  background: rgba(186, 173, 199, 0.05);
   border-radius: 4px;
 }
 
@@ -332,89 +332,122 @@
 
 /* Sectioned view for non-All Metrics filters */
 .metrics-section {
-  background: linear-gradient(135deg, rgba(139, 43, 226, 0.04) 0%, rgba(75, 0, 130, 0.04) 100%);
-  border-radius: 16px;
+  background: linear-gradient(135deg, var(--card-color) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
   padding: 2rem;
-  border: 1px solid rgba(139, 43, 226, 0.15);
-  box-shadow: 0 4px 20px rgba(139, 43, 226, 0.08);
-  margin-bottom: 2rem;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 2rem 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   position: relative;
-  overflow: hidden;
-}
-
-.metrics-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, 
-    rgba(139, 92, 246, 0.02) 0%, 
-    rgba(168, 85, 247, 0.015) 25%, 
-    rgba(147, 51, 234, 0.01) 50%, 
-    rgba(126, 34, 206, 0.005) 75%, 
-    transparent 100%);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  pointer-events: none;
-  border-radius: 16px;
+  transition: all 0.3s ease;
 }
 
 .metrics-section:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(139, 43, 226, 0.12);
-  border-color: rgba(139, 43, 226, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-.metrics-section:hover::before {
-  opacity: 1;
+/* Light mode specific styling */
+@media (prefers-color-scheme: light) {
+  .metrics-section {
+    background: linear-gradient(135deg, rgba(139, 43, 226, 0.05) 0%, rgba(75, 0, 130, 0.05) 100%);
+    border: 1px solid rgba(139, 43, 226, 0.2);
+    box-shadow: 
+      0 8px 32px rgba(139, 43, 226, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+  }
+
+  .metrics-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(139, 43, 226, 0.08) 0%, rgba(75, 0, 130, 0.08) 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    border-radius: 12px;
+  }
+
+  .metrics-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(139, 43, 226, 0.12);
+    border-color: rgba(139, 43, 226, 0.3);
+  }
+
+  .metrics-section:hover::before {
+    opacity: 1;
+  }
 }
 
 .metrics-section-title {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #8b2be2;
+  color: var(--text-primary-color);
   margin: 0 0 1.5rem 0;
   text-align: center;
-  border-bottom: 2px solid rgba(139, 43, 226, 0.3);
+  border-bottom: 2px solid var(--border-color);
   padding-bottom: 1rem;
-  text-shadow: 0 2px 4px rgba(139, 43, 226, 0.2);
+}
+
+/* Light mode specific styling for section title */
+@media (prefers-color-scheme: light) {
+  .metrics-section-title {
+    color: #8b2be2;
+    border-bottom: 2px solid rgba(139, 43, 226, 0.3);
+    text-shadow: 0 2px 4px rgba(139, 43, 226, 0.2);
+  }
 }
 
 .metrics-subsection-header {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--text-secondary-color);
   margin: 1.5rem 0 1rem 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, rgba(139, 43, 226, 0.05) 0%, rgba(75, 0, 130, 0.05) 100%);
+  background: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
-  border-left: 3px solid rgba(139, 43, 226, 0.4);
-  position: relative;
+  border-left: 3px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
-.metrics-subsection-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(139, 43, 226, 0.08) 0%, rgba(75, 0, 130, 0.08) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  border-radius: 8px;
-  pointer-events: none;
+.metrics-subsection-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-left-color: rgba(255, 255, 255, 0.2);
 }
 
-.metrics-subsection-header:hover::before {
-  opacity: 1;
+/* Light mode specific styling for subsection headers */
+@media (prefers-color-scheme: light) {
+  .metrics-subsection-header {
+    color: #9ca3af;
+    background: linear-gradient(135deg, rgba(139, 43, 226, 0.05) 0%, rgba(75, 0, 130, 0.05) 100%);
+    border-left: 3px solid rgba(139, 43, 226, 0.4);
+    position: relative;
+  }
+
+  .metrics-subsection-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(139, 43, 226, 0.08) 0%, rgba(75, 0, 130, 0.08) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 8px;
+    pointer-events: none;
+  }
+
+  .metrics-subsection-header:hover::before {
+    opacity: 1;
+  }
 }
 
 /* Loading and error states */
