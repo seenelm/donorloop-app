@@ -17,9 +17,11 @@ import OnboardingModal from '../components/onboarding/OnboardingModal';
 import { initializeDatabase, fetchGifts, fetchDonors, type GiftData, type DonorData } from '../utils/supabaseClient';
 import StatCard from '../components/stats/StatCard';
 import TopListCard from '../components/stats/TopListCard';
+import { useNavigate } from 'react-router';
 
 const Dashboard: React.FC = () => {
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const [gifts, setGifts] = useState<GiftData[]>([]);
@@ -474,6 +476,7 @@ const Dashboard: React.FC = () => {
             variant="secondary"
             items={metrics.topDonors}
             isMonetary={true}
+            onItemClick={(id) => navigate(`/donor-profile/${id}`)}
           />
           
           {/* LYBUNT and SYBUNT Cards */}
@@ -484,6 +487,7 @@ const Dashboard: React.FC = () => {
               variant="warning"
               items={metrics.lybuntDonors}
               isMonetary={true}
+              onItemClick={(id) => navigate(`/donor-profile/${id}`)}
             />
             
             <TopListCard 
@@ -492,6 +496,7 @@ const Dashboard: React.FC = () => {
               variant="info"
               items={metrics.sybuntDonors}
               isMonetary={true}
+              onItemClick={(id) => navigate(`/donor-profile/${id}`)}
             />
           </div>
         </div>

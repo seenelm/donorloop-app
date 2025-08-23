@@ -8,12 +8,12 @@ import donorLoopLogo from '../../assets/images/donor-loop-logo.png';
 import '../styles/UnifiedHeader.css';
 
 const navItems = [
-  { path: '/new-Dashboard', label: 'Overview' },
+  { path: '/new-dashboard2', label: 'Overview' },
+  { path: '/new-dashboard', label: 'Dashboard 2' },
   { path: '/donor-manager', label: 'Donors' },
   { path: '/fundraising-manager', label: 'Fundraising' },
   { path: '/metrics', label: 'Analytics' },
   { path: '/data-library', label: 'Data Library' },
-  { path: '/emails', label: 'Email' },
 ];
 
 const UnifiedHeader: React.FC = () => {
