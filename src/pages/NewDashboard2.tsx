@@ -82,14 +82,230 @@ const DashboardStatCard: React.FC<DashboardStatCardProps> = ({ title, value, ico
   );
 };
 
+// Donor Type Modal Component
+interface DonorTypeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  donorType: 'major' | 'medium' | 'normal';
+  donationType: 'monthly' | 'onetime';
+  donors: any[];
+}
+
+const DonorTypeModal: React.FC<DonorTypeModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  donorType, 
+  donationType,
+  donors 
+}) => {
+  const navigate = useNavigate();
+
+  const goToDonor = (donorId?: string) => {
+    if (!donorId) return;
+    navigate(`/donor-profile/${donorId}`);
+  };
+
+  const getModalTitle = () => {
+    const typeLabel = donorType.charAt(0).toUpperCase() + donorType.slice(1);
+    const donationLabel = donationType === 'monthly' ? 'Monthly' : 'One-Time';
+    return `${typeLabel} ${donationLabel} Donors`;
+  };
+
+  return (
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={getModalTitle()}
+    >
+      <div className="donor-type-modal">
+        {/* Summary */}
+        <div className="modal-summary">
+          <div className="summary-item">
+            <span className="summary-label">Total Donors:</span>
+            <span className="summary-value">{donors.length}</span>
+          </div>
+        </div>
+
+        {/* Donors List */}
+        <div className="donations-list">
+          {donors.length === 0 ? (
+            <div className="no-donations">
+              No {donorType} {donationType} donors found
+            </div>
+          ) : (
+            <ul className="top-list">
+              {donors.map((donor: any, index: number) => (
+                <li key={donor.donorid || index} className="top-list-item">
+                  <div className="top-list-rank">{index + 1}</div>
+                  <div className="top-list-avatar" onClick={() => goToDonor(donor.donorid)}>
+                    {donorInitials(donor)}
+                  </div>
+                  <div className="top-list-details">
+                    <span className="clickable-name" onClick={() => goToDonor(donor.donorid)}>
+                      {donorFullName(donor) || 'Unknown Donor'}
+                    </span>
+                  </div>
+                  <div className="top-list-secondary">
+                    {donor.email || 'No email'}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+// Monthly Donations Modal Component
+interface MonthlyDonationsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  month: string;
+  year1: number;
+  year2: number;
+  allGifts: any[];
+  viewMode: 'monthly' | 'quarterly';
+}
+
+const MonthlyDonationsModal: React.FC<MonthlyDonationsModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  month, 
+  year1, 
+  year2, 
+  allGifts, 
+  viewMode 
+}) => {
+  const [selectedYear, setSelectedYear] = useState<number>(year2);
+  const navigate = useNavigate();
+
+  const goToDonor = (donorId?: string) => {
+    if (!donorId) return;
+    navigate(`/donor-profile/${donorId}`);
+  };
+
+  // Filter donations based on selected month/quarter and year
+  const getFilteredDonations = () => {
+    if (!allGifts || allGifts.length === 0) return [];
+
+    return allGifts.filter((gift: any) => {
+      if (!gift.giftdate) return false;
+      
+      const giftDate = new Date(gift.giftdate);
+      const giftYear = giftDate.getFullYear();
+      const giftMonth = giftDate.getMonth();
+      
+      // Check if year matches
+      if (giftYear !== selectedYear) return false;
+      
+      if (viewMode === 'monthly') {
+        // For monthly view, match exact month
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthIndex = monthNames.indexOf(month);
+        return monthIndex !== -1 && giftMonth === monthIndex;
+      } else {
+        // For quarterly view, match quarter
+        const quarterMap: { [key: string]: number[] } = {
+          'Q1': [0, 1, 2],     // Jan, Feb, Mar
+          'Q2': [3, 4, 5],     // Apr, May, Jun
+          'Q3': [6, 7, 8],     // Jul, Aug, Sep
+          'Q4': [9, 10, 11]    // Oct, Nov, Dec
+        };
+        const quarterMonths = quarterMap[month];
+        return quarterMonths && quarterMonths.includes(giftMonth);
+      }
+    });
+  };
+
+  const filteredDonations = getFilteredDonations();
+  const totalAmount = filteredDonations.reduce((sum, gift) => sum + (gift.totalamount || 0), 0);
+
+  return (
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={`${month} ${selectedYear} Donations`}
+    >
+      <div className="monthly-donations-modal">
+        {/* Year Toggle */}
+        <div className="modal-year-toggle">
+          <button 
+            className={`year-toggle-btn ${selectedYear === year1 ? 'active' : ''}`}
+            onClick={() => setSelectedYear(year1)}
+          >
+            {year1}
+          </button>
+          <button 
+            className={`year-toggle-btn ${selectedYear === year2 ? 'active' : ''}`}
+            onClick={() => setSelectedYear(year2)}
+          >
+            {year2}
+          </button>
+        </div>
+
+        {/* Summary */}
+        <div className="modal-summary">
+          <div className="summary-item">
+            <span className="summary-label">Total Donations:</span>
+            <span className="summary-value">{filteredDonations.length}</span>
+          </div>
+          <div className="summary-item">
+            <span className="summary-label">Total Amount:</span>
+            <span className="summary-value">{formatAmount(totalAmount)}</span>
+          </div>
+        </div>
+
+        {/* Donations List */}
+        <div className="donations-list">
+          {filteredDonations.length === 0 ? (
+            <div className="no-donations">
+              No donations found for {month} {selectedYear}
+            </div>
+          ) : (
+            <ul className="top-list">
+              {filteredDonations
+                .sort((a, b) => (b.totalamount || 0) - (a.totalamount || 0))
+                .map((gift: any, index: number) => (
+                <li key={gift.giftid || index} className="top-list-item">
+                  <div className="top-list-rank">{index + 1}</div>
+                  <div className="top-list-avatar" onClick={() => goToDonor(gift.donor?.donorid)}>
+                    {donorInitials(gift.donor)}
+                  </div>
+                  <div className="top-list-details">
+                    <span className="clickable-name" onClick={() => goToDonor(gift.donor?.donorid)}>
+                      {donorFullName(gift.donor) || 'Unknown Donor'}
+                    </span>
+                  </div>
+                  <div className="top-list-secondary">
+                    {formatAmount(gift.totalamount)} on {formatDate(gift.giftdate)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
 // Yearly Projection Chart Component
 interface YearlyProjectionChartProps {
   yearlyProjection: any;
   viewMode: 'monthly' | 'quarterly';
   allGifts?: any[];
+  onSegmentClick?: (month: string, year1: number, year2: number) => void;
 }
 
-const YearlyProjectionChart: React.FC<YearlyProjectionChartProps> = ({ yearlyProjection, viewMode, allGifts }) => {
+const YearlyProjectionChart: React.FC<YearlyProjectionChartProps> = ({ 
+  yearlyProjection, 
+  viewMode, 
+  allGifts,
+  onSegmentClick 
+}) => {
   const [compareYear1, setCompareYear1] = React.useState(new Date().getFullYear() - 1);
   const [compareYear2, setCompareYear2] = React.useState(new Date().getFullYear());
   
@@ -192,6 +408,11 @@ const YearlyProjectionChart: React.FC<YearlyProjectionChartProps> = ({ yearlyPro
   
   const yearOptions = generateYearOptions();
 
+  const handleSegmentClick = (month: string) => {
+    if (onSegmentClick) {
+      onSegmentClick(month, compareYear1, compareYear2);
+    }
+  };
 
   return (
     <div className="yearly-projection-container">
@@ -201,7 +422,12 @@ const YearlyProjectionChart: React.FC<YearlyProjectionChartProps> = ({ yearlyPro
           const year1Value = year1Data[index];
           const year2Value = year2Data[index];
           return (
-            <div key={index} className="chart-group">
+            <div 
+              key={index} 
+              className="chart-group"
+              onClick={() => handleSegmentClick(label)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="chart-tooltip">
                 <div className="chart-tooltip-year">{label}</div>
                 <div className="chart-tooltip-amount">
@@ -267,9 +493,10 @@ const YearlyProjectionChart: React.FC<YearlyProjectionChartProps> = ({ yearlyPro
 interface DonorTypePieChartProps {
   metrics: any;
   donationType: 'monthly' | 'onetime';
+  onSegmentClick?: (donorType: 'major' | 'medium' | 'normal', donationType: 'monthly' | 'onetime') => void;
 }
 
-const DonorTypePieChart: React.FC<DonorTypePieChartProps> = ({ metrics, donationType }) => {
+const DonorTypePieChart: React.FC<DonorTypePieChartProps> = ({ metrics, donationType, onSegmentClick }) => {
   const [hoveredSegment, setHoveredSegment] = React.useState<string | null>(null);
   
   const majorCount = donationType === 'monthly' ? metrics.majorDonorsCurrentMonth_Monthly : metrics.majorDonorsCurrentMonth_Onetime;
@@ -315,7 +542,12 @@ const DonorTypePieChart: React.FC<DonorTypePieChartProps> = ({ metrics, donation
               className="pie-segment major"
               onMouseEnter={() => setHoveredSegment('major')}
               onMouseLeave={() => setHoveredSegment(null)}
-              style={{ cursor: 'pointer' }}
+              onClick={() => onSegmentClick?.('major', donationType)}
+              style={{ 
+                cursor: 'pointer',
+                filter: hoveredSegment === 'major' ? 'brightness(1.2)' : 'none',
+                transition: 'all 0.3s ease'
+              }}
             />
           )}
           {/* Medium donors segment */}
@@ -332,7 +564,12 @@ const DonorTypePieChart: React.FC<DonorTypePieChartProps> = ({ metrics, donation
               className="pie-segment medium"
               onMouseEnter={() => setHoveredSegment('medium')}
               onMouseLeave={() => setHoveredSegment(null)}
-              style={{ cursor: 'pointer' }}
+              onClick={() => onSegmentClick?.('medium', donationType)}
+              style={{ 
+                cursor: 'pointer',
+                filter: hoveredSegment === 'medium' ? 'brightness(1.2)' : 'none',
+                transition: 'all 0.3s ease'
+              }}
             />
           )}
           {/* Normal donors segment */}
@@ -349,7 +586,12 @@ const DonorTypePieChart: React.FC<DonorTypePieChartProps> = ({ metrics, donation
               className="pie-segment normal"
               onMouseEnter={() => setHoveredSegment('normal')}
               onMouseLeave={() => setHoveredSegment(null)}
-              style={{ cursor: 'pointer' }}
+              onClick={() => onSegmentClick?.('normal', donationType)}
+              style={{ 
+                cursor: 'pointer',
+                filter: hoveredSegment === 'normal' ? 'brightness(1.2)' : 'none',
+                transition: 'all 0.3s ease'
+              }}
             />
           )}
           {/* Center text - show count, not amount */}
@@ -470,6 +712,29 @@ const NewDashboard2: React.FC = () => {
   const [donorTypeFilter, setDonorTypeFilter] = useState<'monthly' | 'onetime'>('monthly');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContentId, setModalContentId] = useState<string | null>(null);
+  const [monthlyDonationsModal, setMonthlyDonationsModal] = useState<{
+    isOpen: boolean;
+    month: string;
+    year1: number;
+    year2: number;
+    allGifts: any[];
+  }>({
+    isOpen: false,
+    month: '',
+    year1: 0,
+    year2: 0,
+    allGifts: []
+  });
+
+  const [donorTypeModal, setDonorTypeModal] = useState<{
+    isOpen: boolean;
+    donorType: 'major' | 'medium' | 'normal';
+    donationType: 'monthly' | 'onetime';
+  }>({
+    isOpen: false,
+    donorType: 'major',
+    donationType: 'monthly'
+  });
 
   const modalTitles: { [key: string]: string } = {
     totalDonorPool: 'All-Time Donor Pool',
@@ -485,6 +750,51 @@ const NewDashboard2: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setModalContentId(null);
+  };
+
+  const openMonthlyDonationsModal = (month: string, year1: number, year2: number, allGifts: any[]) => {
+    setMonthlyDonationsModal({
+      isOpen: true,
+      month,
+      year1,
+      year2,
+      allGifts
+    });
+  };
+
+  const closeMonthlyDonationsModal = () => {
+    setMonthlyDonationsModal({
+      isOpen: false,
+      month: '',
+      year1: 0,
+      year2: 0,
+      allGifts: []
+    });
+  };
+
+  const openDonorTypeModal = (donorType: 'major' | 'medium' | 'normal', donationType: 'monthly' | 'onetime') => {
+    setDonorTypeModal({
+      isOpen: true,
+      donorType,
+      donationType
+    });
+  };
+
+  const closeDonorTypeModal = () => {
+    setDonorTypeModal({
+      isOpen: false,
+      donorType: 'major',
+      donationType: 'monthly'
+    });
+  };
+
+  const getDonorsByType = (donorType: 'major' | 'medium' | 'normal', donationType: 'monthly' | 'onetime') => {
+    // The pie chart shows current month data, so we need to get current month donor lists
+    const typeKey = `${donorType}DonorsCurrentMonthList_${donationType === 'monthly' ? 'Monthly' : 'Onetime'}`;
+    const donorList = data[typeKey] || [];
+    
+    // Convert SnapshotDonorInfo[] to donor objects for the modal
+    return donorList.map((item: any) => item.donor).filter(Boolean);
   };
 
   if (isLoading) {
@@ -586,6 +896,14 @@ const NewDashboard2: React.FC = () => {
                 ...(data.mediumOnetimeAllTime?.gifts || []),
                 ...(data.normalOnetimeAllTime?.gifts || [])
               ]}
+              onSegmentClick={(month, year1, year2) => openMonthlyDonationsModal(month, year1, year2, [
+                ...(data.majorMonthlyAllTime?.gifts || []),
+                ...(data.mediumMonthlyAllTime?.gifts || []),
+                ...(data.normalMonthlyAllTime?.gifts || []),
+                ...(data.majorOnetimeAllTime?.gifts || []),
+                ...(data.mediumOnetimeAllTime?.gifts || []),
+                ...(data.normalOnetimeAllTime?.gifts || [])
+              ])}
             />
             <div className="chart-legend">
               <div className="legend-item">
@@ -623,6 +941,7 @@ const NewDashboard2: React.FC = () => {
               <DonorTypePieChart 
                 metrics={metrics} 
                 donationType={donorTypeFilter}
+                onSegmentClick={openDonorTypeModal}
               />
             </div>
 
@@ -659,6 +978,24 @@ const NewDashboard2: React.FC = () => {
         {modalContentId === 'newDonors' && (<div className="top-list-content">{data.newDonorsList.length === 0 ? (<div className="top-list-empty">No new donors in the last 30 days.</div>) : (<ul className="top-list">{data.newDonorsList.map((item: DonorData, i: number) => (<li key={item.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donorid)}>{donorInitials(item)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donorid)}>{donorFullName(item)}</span></div><div className="top-list-secondary">{formatDate(item.created_at)}</div></li>))}</ul>)}</div>)}
         
       </Modal>
+
+      <MonthlyDonationsModal 
+        isOpen={monthlyDonationsModal.isOpen} 
+        onClose={closeMonthlyDonationsModal} 
+        month={monthlyDonationsModal.month} 
+        year1={monthlyDonationsModal.year1} 
+        year2={monthlyDonationsModal.year2} 
+        allGifts={monthlyDonationsModal.allGifts} 
+        viewMode={projectionViewMode} 
+      />
+
+      <DonorTypeModal 
+        isOpen={donorTypeModal.isOpen} 
+        onClose={closeDonorTypeModal} 
+        donorType={donorTypeModal.donorType}
+        donationType={donorTypeModal.donationType}
+        donors={getDonorsByType(donorTypeModal.donorType, donorTypeModal.donationType)}
+      />
     </div>
   );
 };

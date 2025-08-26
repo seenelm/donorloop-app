@@ -1590,3 +1590,265 @@
 .chart-bar {
   cursor: pointer;
 }
+
+/* Monthly Donations Modal Styles */
+.monthly-donations-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.modal-year-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.year-toggle-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  background: transparent;
+  color: var(--text-secondary-color);
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.year-toggle-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.1) 0%, 
+    rgba(168, 85, 247, 0.08) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.year-toggle-btn:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-2px);
+}
+
+.year-toggle-btn:hover::before {
+  opacity: 1;
+}
+
+.year-toggle-btn.active {
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.9) 0%, 
+    rgba(99, 102, 241, 0.9) 100%);
+  border-color: rgba(139, 92, 246, 0.8);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(139, 92, 246, 0.4),
+    0 4px 12px rgba(139, 92, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.modal-summary {
+  display: flex;
+  justify-content: space-around;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.05) 0%, 
+    rgba(99, 102, 241, 0.03) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  margin-bottom: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary-color);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary-color);
+  background: linear-gradient(135deg, var(--text-primary-color) 0%, rgba(139, 92, 246, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.donations-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+  padding-right: 0.5rem;
+}
+
+.donations-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.donations-list::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.05);
+  border-radius: 3px;
+}
+
+.donations-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(147, 51, 234, 0.6));
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.donations-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(147, 51, 234, 0.8));
+}
+
+.no-donations {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary-color);
+  font-style: italic;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.03) 0%, 
+    rgba(99, 102, 241, 0.02) 100%);
+  border-radius: 12px;
+  border: 2px dashed rgba(139, 92, 246, 0.2);
+}
+
+/* Enhanced top-list styling for modal */
+.monthly-donations-modal .top-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.monthly-donations-modal .top-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.04) 0%, 
+    rgba(99, 102, 241, 0.02) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.monthly-donations-modal .top-list-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.08) 0%, 
+    rgba(168, 85, 247, 0.06) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.monthly-donations-modal .top-list-item:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+}
+
+.monthly-donations-modal .top-list-item:hover::before {
+  opacity: 1;
+}
+
+.monthly-donations-modal .top-list-rank {
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.9) 0%, 
+    rgba(99, 102, 241, 0.9) 100%);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+  position: relative;
+  z-index: 1;
+}
+
+.monthly-donations-modal .top-list-avatar {
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.8) 0%, 
+    rgba(168, 85, 247, 0.8) 100%);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+.monthly-donations-modal .top-list-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(139, 92, 246, 0.4);
+}
+
+.monthly-donations-modal .top-list-details {
+  flex: 1;
+  color: var(--text-primary-color);
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+}
+
+.monthly-donations-modal .clickable-name {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.monthly-donations-modal .clickable-name:hover {
+  color: rgba(139, 92, 246, 0.9);
+}
+
+.monthly-donations-modal .top-list-secondary {
+  color: var(--text-secondary-color);
+  font-size: 0.9rem;
+  text-align: right;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}

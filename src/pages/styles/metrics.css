@@ -111,8 +111,8 @@
   }
 }
 
-/* Dashboard-style stat cards for metrics page */
-.stat-card {
+/* Dashboard-style stat cards for metrics page - SCOPED TO METRICS ONLY */
+.metrics-container .stat-card {
   background: linear-gradient(135deg, var(--surface-color, #1e1e2e) 0%, rgba(139, 92, 246, 0.03) 100%);
   border-radius: 16px;
   padding: 2rem;
@@ -130,7 +130,7 @@
   z-index: 1;
 }
 
-.stat-card::before {
+.metrics-container .stat-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -149,7 +149,7 @@
   border-radius: 12px;
 }
 
-.stat-card:hover {
+.metrics-container .stat-card:hover {
   transform: translateY(-4px) scale(1.03);
   box-shadow: 
     0 25px 35px -5px rgba(139, 92, 246, 0.15),
@@ -160,21 +160,21 @@
   border-color: rgba(139, 92, 246, 0.4);
 }
 
-.stat-card:hover::before {
+.metrics-container .stat-card:hover::before {
   opacity: 1;
 }
 
-.stat-card-clickable {
+.metrics-container .stat-card-clickable {
   cursor: pointer;
 }
 
-.stat-card-info-content {
+.metrics-container .stat-card-info-content {
   display: flex;
   align-items: center;
   width: 100%;
 }
 
-.stat-card-icon {
+.metrics-container .stat-card-icon {
   margin-right: 1.5rem;
   color: white;
   width: 52px;
@@ -199,7 +199,7 @@
   position: relative;
 }
 
-.stat-card-icon::before {
+.metrics-container .stat-card-icon::before {
   content: '';
   position: absolute;
   inset: 2px;
@@ -210,7 +210,7 @@
   pointer-events: none;
 }
 
-.stat-card:hover .stat-card-icon {
+.metrics-container .stat-card:hover .stat-card-icon {
   transform: scale(1.15) rotate(5deg);
   box-shadow: 
     0 12px 20px rgba(139, 92, 246, 0.5),
@@ -219,11 +219,11 @@
     inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
-.stat-card-info {
+.metrics-container .stat-card-info {
   flex: 1;
 }
 
-.stat-card-title {
+.metrics-container .stat-card-title {
   font-size: 0.875rem;
   color: var(--text-secondary-color, #9ca3af);
   margin: 0 0 0.5rem 0;
@@ -232,7 +232,7 @@
   text-transform: uppercase;
 }
 
-.stat-card-value {
+.metrics-container .stat-card-value {
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--text-primary-color, #ffffff);
@@ -244,7 +244,7 @@
   background-clip: text;
 }
 
-.stat-card-subtitle {
+.metrics-container .stat-card-subtitle {
   font-size: 0.75rem;
   color: rgba(139, 92, 246, 0.7);
   font-weight: 500;
