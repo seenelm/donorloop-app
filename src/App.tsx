@@ -3,12 +3,12 @@ import Dashboard from './pages/Dashboard';
 import FundraisingManager from './pages/FundraisingManager';
 import DonorManager from './pages/DonorManager';
 import DonorProfile from './pages/DonorProfile';
-import SidebarView from './components/sidebar';
 import ResizableChatSidebar from './components/chat/ResizableChatSidebar';
 import FloatingChatButton from './components/chat/FloatingChatButton';
 import { ChatSidebarProvider } from './context/ChatSidebarContext';
-import { SidebarProvider, useSidebar } from './context/SidebarContext';
+import { SidebarProvider } from './context/SidebarContext';
 import { AuthProvider } from './context/AuthContext';
+import { PageTransitionProvider } from './context/PageTransitionContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Login from './pages/Login';
 import AuthAdmin from './pages/AuthAdmin';
@@ -18,16 +18,17 @@ import './App.css';
 import './pages/styles/Dashboard.css';
 import Metrics from './pages/Metrics';
 import NewDashboard from './pages/NewDashBoard';
+import NewDashboard2 from './pages/NewDashboard2';
+import UnifiedHeader from './components/navigation/UnifiedHeader';
+import PageTransitionWrapper from './components/transitions/PageTransitionWrapper';
 
 // AuthenticatedLayout component that includes sidebar and other app elements
 const AuthenticatedLayout = () => {
-  const { isCollapsed } = useSidebar();
-  
   return (
     <div className="app-container">
-      <SidebarView />
-      <div className={`content-wrapper ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <div className="main-content">
+      <UnifiedHeader />
+      <div className="content-wrapper">
+        <PageTransitionWrapper>
           <Routes>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/fundraising-manager" element={<FundraisingManager />} />
@@ -37,9 +38,10 @@ const AuthenticatedLayout = () => {
             <Route path="/auth-admin" element={<AuthAdmin />} />
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/new-dashboard" element={<NewDashboard />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/new-dashboard2" element={<NewDashboard2 />} />
+            <Route path="*" element={<Navigate to="/new-dashboard" replace />} />
           </Routes>
-        </div>
+        </PageTransitionWrapper>
         <ResizableChatSidebar />
         <FloatingChatButton />
       </div>
@@ -59,11 +61,13 @@ function App() {
           {/* Protected routes with authenticated layout */}
           <Route path="/*" element={
             <ProtectedRoute>
-              <ChatSidebarProvider>
-                <SidebarProvider>
-                  <AuthenticatedLayout />
-                </SidebarProvider>
-              </ChatSidebarProvider>
+              <PageTransitionProvider>
+                <ChatSidebarProvider>
+                  <SidebarProvider>
+                    <AuthenticatedLayout />
+                  </SidebarProvider>
+                </ChatSidebarProvider>
+              </PageTransitionProvider>
             </ProtectedRoute>
           } />
           

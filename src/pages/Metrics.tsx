@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
   faCalendarAlt, faChartLine, faPercent, faArrowUp, faArrowDown, faUserPlus,
   faArrowUpRightDots, faArrowTrendUp, faArrowTrendDown, faUserSlash,
   faUser, faUserCheck, faUserFriends, faUserEdit, faUserTie, faStar, faGem,
   faPiggyBank, faGift, faHandHoldingHeart, faDollarSign, faChartPie, faWrench
 } from '@fortawesome/free-solid-svg-icons';
-import StatCard from '../components/stats/StatCard';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Controls from '../components/controls/Controls';
 import Modal from '../components/popup/modal';
+import './styles/metrics.css';
 import { 
   useMetrics,
   type DonorData,
@@ -34,6 +36,11 @@ const formatAmount = (amount?: number) => {
 const Metrics: React.FC = () => {
 
   const data = useMetrics();
+  const navigate = useNavigate();
+  const goToDonor = (donorId?: string) => {
+    if (!donorId) return;
+    navigate(`/donor-profile/${donorId}`);
+  };
 
   const [activeFilter, setActiveFilter] = useState('All Metrics');
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,6 +50,25 @@ const Metrics: React.FC = () => {
 
   const openModal = (metricId: string) => { setModalContentId(metricId); setIsModalOpen(true); };
   const closeModal = () => { setIsModalOpen(false); setModalContentId(null); };
+
+  // Custom MetricCard component that matches dashboard styling
+  const MetricCard: React.FC<any> = ({ title, value, icon, onClick, subtitle }) => (
+    <div 
+      className={`stat-card ${onClick ? 'stat-card-clickable' : ''}`}
+      onClick={onClick}
+    >
+      <div className="stat-card-info-content">
+        <div className="stat-card-icon">
+          <FontAwesomeIcon icon={icon} />
+        </div>
+        <div className="stat-card-info">
+          <div className="stat-card-title">{title}</div>
+          <div className="stat-card-value">{value}</div>
+          {subtitle && <div className="stat-card-subtitle">{subtitle}</div>}
+        </div>
+      </div>
+    </div>
+  );
 
   if (data.isLoading) return <div className="loading-state">Loading metrics...</div>;
   if (data.error) return <div className="error-state">Error loading metrics: {data.error}</div>;
@@ -685,15 +711,45 @@ const Metrics: React.FC = () => {
               return (
                 <div key={tier} className="classification-tier">
                   <h3 className="classification-header">{tier} Donors</h3>
-                  {oneYearCards.length > 0 && (<><h4 className="classification-subheader">1 Year</h4><div className="stat-cards-grid">{oneYearCards.map(metric => (<StatCard key={metric.id} {...metric as any} />))}</div></>)}
-                  {allTimeCards.length > 0 && (<><h4 className="classification-subheader">All-Time</h4><div className="stat-cards-grid">{allTimeCards.map(metric => (<StatCard key={metric.id} {...metric as any} />))}</div></>)}
+                  {oneYearCards.length > 0 && (<><h4 className="classification-subheader">1 Year</h4><div className="stat-cards-grid">{oneYearCards.map(metric => (<MetricCard key={metric.id} {...metric as any} />))}</div></>)}
+                  {allTimeCards.length > 0 && (<><h4 className="classification-subheader">All-Time</h4><div className="stat-cards-grid">{allTimeCards.map(metric => (<MetricCard key={metric.id} {...metric as any} />))}</div></>)}
                 </div>
               );
             })}
           </div>
+        ) : activeFilter !== 'All Metrics' ? (
+          <div className="metrics-section">
+            <h3 className="metrics-section-title">{activeFilter}</h3>
+            {(() => {
+              const monthly = filteredMetrics.filter(m => (m as any).donationType?.includes('monthly'));
+              const oneTime = filteredMetrics.filter(m => (m as any).donationType?.includes('one-time'));
+              const bothEmpty = monthly.length === 0 && oneTime.length === 0;
+              return (
+                <>
+                  {monthly.length > 0 && (
+                    <>
+                      <h4 className="metrics-subsection-header">Monthly</h4>
+                      <div className="stat-cards-grid">{monthly.map(metric => (<MetricCard key={metric.id} {...metric as any} />))}</div>
+                    </>
+                  )}
+                  {oneTime.length > 0 && (
+                    <>
+                      <h4 className="metrics-subsection-header">One-Time</h4>
+                      <div className="stat-cards-grid">{oneTime.map(metric => (<MetricCard key={metric.id} {...metric as any} />))}</div>
+                    </>
+                  )}
+                  {bothEmpty && (
+                    <div className="stat-cards-grid">
+                      <p>No metrics available for "{activeFilter}" filter.</p>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
         ) : (
           <div className="stat-cards-grid">
-            {filteredMetrics.map((metric) => (<StatCard key={metric.id} {...metric as any} />))}
+            {filteredMetrics.map((metric) => (<MetricCard key={metric.id} {...metric as any} />))}
             {filteredMetrics.length === 0 && (<p>No metrics available for "{activeFilter}" filter.</p>)}
           </div>
         )}
@@ -705,12 +761,42 @@ const Metrics: React.FC = () => {
         {/* === Main Lists === */}
         {modalContentId === 'newDonors' && (
           <div className="top-list-content">
-            {data.newDonorsList.length === 0 ? (<div className="top-list-empty">No new donors in the last 30 days.</div>) : (<ul className="top-list">{data.newDonorsList.map((item: DonorData, i: number) => (<li key={item.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item)}</div><div className="top-list-details">{donorFullName(item)}</div><div className="top-list-secondary">{formatDate(item.created_at)}</div></li>))}</ul>)}
+            {data.newDonorsList.length === 0 ? (
+              <div className="top-list-empty">No new donors in the last 30 days.</div>
+            ) : (
+              <ul className="top-list">
+                {data.newDonorsList.map((item: DonorData, i: number) => (
+                  <li key={item.donorid} className="top-list-item">
+                    <div className="top-list-rank">{i + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(item.donorid)}>{donorInitials(item)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(item.donorid)}>{donorFullName(item)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatDate(item.created_at)}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         {modalContentId === 'recurringDonors' && (
           <div className="top-list-content">
-            {data.recurringGiftsMonth.length === 0 ? (<div className="top-list-empty">No recurring gifts in the last month.</div>) : (<ul className="top-list">{data.recurringGiftsMonth.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul>)}
+            {data.recurringGiftsMonth.length === 0 ? (
+              <div className="top-list-empty">No recurring gifts in the last month.</div>
+            ) : (
+              <ul className="top-list">
+                {data.recurringGiftsMonth.map((item: GiftWithDonor, i: number) => (
+                  <li key={item.giftid} className="top-list-item">
+                    <div className="top-list-rank">{i + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -719,7 +805,20 @@ const Metrics: React.FC = () => {
            <div className="top-list-content">
             {data.medianIndex !== null && (<p style={{ margin: '0 0 1rem' }}><strong>Median Position:</strong> Gift #{data.medianIndex + 1}</p>)}
             <p style={{ margin: '0 0 1rem' }}><strong>Computed Median:</strong> {formatAmount(data.metrics.medianDonation)}</p>
-            <ul className="top-list">{data.rawDonationsList.map((item: GiftWithDonor, idx: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">Gift ID {item.giftid}<br />{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)}<br />{formatDate(item.giftdate)}</div></li>))}</ul>
+            <ul className="top-list">
+              {data.rawDonationsList.map((item: GiftWithDonor, idx: number) => (
+                <li key={item.giftid} className="top-list-item">
+                  <div className="top-list-rank">{idx + 1}</div>
+                  <div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div>
+                  <div className="top-list-details">
+                    Gift ID {item.giftid}
+                    <br />
+                    <span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span>
+                  </div>
+                  <div className="top-list-secondary">{formatAmount(item.totalamount)}<br />{formatDate(item.giftdate)}</div>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         {modalContentId === 'wma' && (
@@ -732,7 +831,22 @@ const Metrics: React.FC = () => {
         {/* === Older Churn Metrics === */}
         {modalContentId === 'churnedLarge' && (
           <div className="top-list-content">
-            {data.churnedLargeDetails.length === 0 ? <div className="top-list-empty">No large donors have churned.</div> : <ul className="top-list">{data.churnedLargeDetails.map((item: { donor: DonorData; priorYearSum: number }, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">Prior-years total: {formatAmount(item.priorYearSum)}</div></li>))}</ul>}
+            {data.churnedLargeDetails.length === 0 ? (
+              <div className="top-list-empty">No large donors have churned.</div>
+            ) : (
+              <ul className="top-list">
+                {data.churnedLargeDetails.map((item: { donor: DonorData; priorYearSum: number }, i: number) => (
+                  <li key={item.donor.donorid} className="top-list-item">
+                    <div className="top-list-rank">{i + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span>
+                    </div>
+                    <div className="top-list-secondary">Prior-years total: {formatAmount(item.priorYearSum)}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         {modalContentId === 'churnedMonthly' && (
@@ -746,8 +860,8 @@ const Metrics: React.FC = () => {
               return (
                 <li key={item.donor.donorid} className="top-list-item">
                   <div className="top-list-rank">{i + 1}</div>
-                  <div className="top-list-avatar">{donorInitials(item.donor)}</div>
-                  <div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email || 'No Email'}</span></div>
+                  <div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div>
+                  <div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email || 'No Email'}</span></div>
                   <div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d', fontStyle: 'italic'}}>Last Gift: {formatDate(item.lastGiftDate)}</span></div>
                 </li>
               );
@@ -758,69 +872,213 @@ const Metrics: React.FC = () => {
     )}
         
         {/* === Median/WMA Analysis Lists === */}
-        {modalContentId === 'recAboveMedian' && (<div className="top-list-content"><ol className="top-list">{data.rawDonationsList.filter((g: GiftWithDonor) => g.isrecurring && g.totalamount! > data.metrics.medianDonation).map((g: GiftWithDonor, idx: number) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
-        {modalContentId === 'recBelowMedian' && (<div className="top-list-content"><ol className="top-list">{data.rawDonationsList.filter((g: GiftWithDonor) => g.isrecurring && g.totalamount! <= data.metrics.medianDonation).map((g: GiftWithDonor, idx: number) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
-        {modalContentId === 'nonRecAboveMedian' && (<div className="top-list-content"><ol className="top-list">{data.rawDonationsList.filter((g: GiftWithDonor) => !g.isrecurring && g.totalamount! > data.metrics.medianDonation).map((g: GiftWithDonor, idx: number) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
-        {modalContentId === 'nonRecBelowMedian' && (<div className="top-list-content"><ol className="top-list">{data.rawDonationsList.filter((g: GiftWithDonor) => !g.isrecurring && g.totalamount! <= data.metrics.medianDonation).map((g: GiftWithDonor, idx: number) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
-        {modalContentId === 'recAboveWMA' && (<div className="top-list-content"><ol className="top-list">{data.rawDonationsList.filter((g: GiftWithDonor) => g.isrecurring && g.totalamount! > data.metrics.weightedMovingAvg).map((g: GiftWithDonor, idx: number) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
-        {modalContentId === 'recBelowWMA' && (<div className="top-list-content"><ol className="top-list">{data.rawDonationsList.filter((g: GiftWithDonor) => g.isrecurring && g.totalamount! <= data.metrics.weightedMovingAvg).map((g: GiftWithDonor, idx: number) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
-        {modalContentId === 'nonRecAboveWMA' && (<div className="top-list-content"><ol className="top-list">{data.rawDonationsList.filter((g: GiftWithDonor) => !g.isrecurring && g.totalamount! > data.metrics.weightedMovingAvg).map((g: GiftWithDonor, idx: number) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
-        {modalContentId === 'nonRecBelowWMA' && (<div className="top-list-content"><ol className="top-list">{data.rawDonationsList.filter((g: GiftWithDonor) => !g.isrecurring && g.totalamount! <= data.metrics.weightedMovingAvg).map((g: GiftWithDonor, idx: number) => (<li key={g.giftid} className="top-list-item"><div className="top-list-rank">{idx + 1}</div><div className="top-list-details">{donorFullName(g.donor)}</div><div className="top-list-secondary">{formatAmount(g.totalamount)} on {formatDate(g.giftdate)}</div></li>))}</ol></div>)}
+        {modalContentId === 'recAboveMedian' && (
+          <div className="top-list-content">
+            <ol className="top-list">
+              {data.rawDonationsList
+                .filter((g: GiftWithDonor) => g.isrecurring && g.totalamount! > data.metrics.medianDonation)
+                .map((g: GiftWithDonor, idx: number) => (
+                  <li key={g.giftid} className="top-list-item">
+                    <div className="top-list-rank">{idx + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(g.donor?.donorid)}>{donorInitials(g.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(g.donor?.donorid)}>{donorFullName(g.donor)}</span>
+                      <span className="top-list-subheader">Gift on {formatDate(g.giftdate)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(g.totalamount)}</div>
+                  </li>
+                ))}
+            </ol>
+          </div>
+        )}
+        {modalContentId === 'recBelowMedian' && (
+          <div className="top-list-content">
+            <ol className="top-list">
+              {data.rawDonationsList
+                .filter((g: GiftWithDonor) => g.isrecurring && g.totalamount! <= data.metrics.medianDonation)
+                .map((g: GiftWithDonor, idx: number) => (
+                  <li key={g.giftid} className="top-list-item">
+                    <div className="top-list-rank">{idx + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(g.donor?.donorid)}>{donorInitials(g.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(g.donor?.donorid)}>{donorFullName(g.donor)}</span>
+                      <span className="top-list-subheader">Gift on {formatDate(g.giftdate)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(g.totalamount)}</div>
+                  </li>
+                ))}
+            </ol>
+          </div>
+        )}
+        {modalContentId === 'nonRecAboveMedian' && (
+          <div className="top-list-content">
+            <ol className="top-list">
+              {data.rawDonationsList
+                .filter((g: GiftWithDonor) => !g.isrecurring && g.totalamount! > data.metrics.medianDonation)
+                .map((g: GiftWithDonor, idx: number) => (
+                  <li key={g.giftid} className="top-list-item">
+                    <div className="top-list-rank">{idx + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(g.donor?.donorid)}>{donorInitials(g.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(g.donor?.donorid)}>{donorFullName(g.donor)}</span>
+                      <span className="top-list-subheader">Gift on {formatDate(g.giftdate)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(g.totalamount)}</div>
+                  </li>
+                ))}
+            </ol>
+          </div>
+        )}
+        {modalContentId === 'nonRecBelowMedian' && (
+          <div className="top-list-content">
+            <ol className="top-list">
+              {data.rawDonationsList
+                .filter((g: GiftWithDonor) => !g.isrecurring && g.totalamount! <= data.metrics.medianDonation)
+                .map((g: GiftWithDonor, idx: number) => (
+                  <li key={g.giftid} className="top-list-item">
+                    <div className="top-list-rank">{idx + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(g.donor?.donorid)}>{donorInitials(g.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(g.donor?.donorid)}>{donorFullName(g.donor)}</span>
+                      <span className="top-list-subheader">Gift on {formatDate(g.giftdate)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(g.totalamount)}</div>
+                  </li>
+                ))}
+            </ol>
+          </div>
+        )}
+        {modalContentId === 'recAboveWMA' && (
+          <div className="top-list-content">
+            <ol className="top-list">
+              {data.rawDonationsList
+                .filter((g: GiftWithDonor) => g.isrecurring && g.totalamount! > data.metrics.weightedMovingAvg)
+                .map((g: GiftWithDonor, idx: number) => (
+                  <li key={g.giftid} className="top-list-item">
+                    <div className="top-list-rank">{idx + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(g.donor?.donorid)}>{donorInitials(g.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(g.donor?.donorid)}>{donorFullName(g.donor)}</span>
+                      <span className="top-list-subheader">Gift on {formatDate(g.giftdate)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(g.totalamount)}</div>
+                  </li>
+                ))}
+            </ol>
+          </div>
+        )}
+        {modalContentId === 'recBelowWMA' && (
+          <div className="top-list-content">
+            <ol className="top-list">
+              {data.rawDonationsList
+                .filter((g: GiftWithDonor) => g.isrecurring && g.totalamount! <= data.metrics.weightedMovingAvg)
+                .map((g: GiftWithDonor, idx: number) => (
+                  <li key={g.giftid} className="top-list-item">
+                    <div className="top-list-rank">{idx + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(g.donor?.donorid)}>{donorInitials(g.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(g.donor?.donorid)}>{donorFullName(g.donor)}</span>
+                      <span className="top-list-subheader">Gift on {formatDate(g.giftdate)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(g.totalamount)}</div>
+                  </li>
+                ))}
+            </ol>
+          </div>
+        )}
+        {modalContentId === 'nonRecAboveWMA' && (
+          <div className="top-list-content">
+            <ol className="top-list">
+              {data.rawDonationsList
+                .filter((g: GiftWithDonor) => !g.isrecurring && g.totalamount! > data.metrics.weightedMovingAvg)
+                .map((g: GiftWithDonor, idx: number) => (
+                  <li key={g.giftid} className="top-list-item">
+                    <div className="top-list-rank">{idx + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(g.donor?.donorid)}>{donorInitials(g.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(g.donor?.donorid)}>{donorFullName(g.donor)}</span>
+                      <span className="top-list-subheader">Gift on {formatDate(g.giftdate)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(g.totalamount)}</div>
+                  </li>
+                ))}
+            </ol>
+          </div>
+        )}
+        {modalContentId === 'nonRecBelowWMA' && (
+          <div className="top-list-content">
+            <ol className="top-list">
+              {data.rawDonationsList
+                .filter((g: GiftWithDonor) => !g.isrecurring && g.totalamount! <= data.metrics.weightedMovingAvg)
+                .map((g: GiftWithDonor, idx: number) => (
+                  <li key={g.giftid} className="top-list-item">
+                    <div className="top-list-rank">{idx + 1}</div>
+                    <div className="top-list-avatar" onClick={() => goToDonor(g.donor?.donorid)}>{donorInitials(g.donor)}</div>
+                    <div className="top-list-details">
+                      <span className="clickable-name" onClick={() => goToDonor(g.donor?.donorid)}>{donorFullName(g.donor)}</span>
+                      <span className="top-list-subheader">Gift on {formatDate(g.giftdate)}</span>
+                    </div>
+                    <div className="top-list-secondary">{formatAmount(g.totalamount)}</div>
+                  </li>
+                ))}
+            </ol>
+          </div>
+        )}
 
         {/* === Top Donor Lists === */}
-        {modalContentId === 'top20Recurring' && (<div className="top-list-content">{data.topRecurringDonors.length === 0 ? <div className="top-list-empty">No recurring donors this year.</div> : <ul className="top-list">{data.topRecurringDonors.map((item: TopDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmount)}<br /><span style={{color: '#6c757d'}}>{item.type}</span></div></li>))}</ul>}</div>)}
-        {modalContentId === 'top20NonRecurring' && (<div className="top-list-content">{data.topNonRecurringDonors.length === 0 ? <div className="top-list-empty">No one-time donors this year.</div> : <ul className="top-list">{data.topNonRecurringDonors.map((item: TopDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmount)}<br /><span style={{color: '#6c757d'}}>{item.type}</span></div></li>))}</ul>}</div>)}
+        {modalContentId === 'top20Recurring' && (<div className="top-list-content">{data.topRecurringDonors.length === 0 ? <div className="top-list-empty">No recurring donors this year.</div> : <ul className="top-list">{data.topRecurringDonors.map((item: TopDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmount)}<br /><span style={{color: '#6c757d'}}>{item.type}</span></div></li>))}</ul>}</div>)}
+        {modalContentId === 'top20NonRecurring' && (<div className="top-list-content">{data.topNonRecurringDonors.length === 0 ? <div className="top-list-empty">No one-time donors this year.</div> : <ul className="top-list">{data.topNonRecurringDonors.map((item: TopDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br /><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalAmount)}<br /><span style={{color: '#6c757d'}}>{item.type}</span></div></li>))}</ul>}</div>)}
 
         {/* === Current Year Donor Classifications === */}
-        {modalContentId === 'majorMonthly' && (<div className="top-list-content"><ul className="top-list">{data.majorMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
-        {modalContentId === 'mediumMonthly' && (<div className="top-list-content"><ul className="top-list">{data.mediumMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
-        {modalContentId === 'normalMonthly' && (<div className="top-list-content"><ul className="top-list">{data.normalMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
-        {modalContentId === 'majorOnetime' && (<div className="top-list-content"><ul className="top-list">{data.majorOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
-        {modalContentId === 'mediumOnetime' && (<div className="top-list-content"><ul className="top-list">{data.mediumOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
-        {modalContentId === 'normalOnetime' && (<div className="top-list-content"><ul className="top-list">{data.normalOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorMonthly' && (<div className="top-list-content"><ul className="top-list">{data.majorMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumMonthly' && (<div className="top-list-content"><ul className="top-list">{data.mediumMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
+        {modalContentId === 'normalMonthly' && (<div className="top-list-content"><ul className="top-list">{data.normalMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
+        {modalContentId === 'majorOnetime' && (<div className="top-list-content"><ul className="top-list">{data.majorOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumOnetime' && (<div className="top-list-content"><ul className="top-list">{data.mediumOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalOnetime' && (<div className="top-list-content"><ul className="top-list">{data.normalOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
 
         {/* === All-Time Donor Classifications === */}
-        {modalContentId === 'allTimeMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{data.allTimeMajorMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>)}
-        {modalContentId === 'allTimeMediumMonthly' && (<div className="top-list-content"><ul className="top-list">{data.allTimeMediumMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>)}
-        {modalContentId === 'allTimeNormalMonthly' && (<div className="top-list-content"><ul className="top-list">{data.allTimeNormalMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>)}
-        {modalContentId === 'allTimeMajorOnetime' && (<div className="top-list-content"><ul className="top-list">{data.allTimeMajorOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
-        {modalContentId === 'allTimeMediumOnetime' && (<div className="top-list-content"><ul className="top-list">{data.allTimeMediumOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
-        {modalContentId === 'allTimeNormalOnetime' && (<div className="top-list-content"><ul className="top-list">{data.allTimeNormalOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'allTimeMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{data.allTimeMajorMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>)}
+        {modalContentId === 'allTimeMediumMonthly' && (<div className="top-list-content"><ul className="top-list">{data.allTimeMediumMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>)}
+        {modalContentId === 'allTimeNormalMonthly' && (<div className="top-list-content"><ul className="top-list">{data.allTimeNormalMonthly.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/avg mo</div></li>))}</ul></div>)}
+        {modalContentId === 'allTimeMajorOnetime' && (<div className="top-list-content"><ul className="top-list">{data.allTimeMajorOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'allTimeMediumOnetime' && (<div className="top-list-content"><ul className="top-list">{data.allTimeMediumOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
+        {modalContentId === 'allTimeNormalOnetime' && (<div className="top-list-content"><ul className="top-list">{data.allTimeNormalOnetime.map((item: ClassifiedDonor) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}</div></li>))}</ul></div>)}
         
         {/* === Churn & Retention === */}
-        {modalContentId === 'churnedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{data.churnedMonthlyMajor.map((item: ChurnedDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d'}}>Last Recurring Gift: {formatAmount(item.lastRecurringAmount)} on {formatDate(item.lastRecurringDate)}</span></div></li>))}</ul></div>)}
-        {modalContentId === 'churnedMajorOnetime' && (<div className="top-list-content"><ul className="top-list">{data.churnedOnetimeMajor.map((item: ChurnedDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d'}}>Last Gift: {formatDate(item.lastGiftDate)}</span></div></li>))}</ul></div>)}
-        {modalContentId === 'retainedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{data.retainedMajorMonthly.map((item: ClassifiedDonor, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
+        {modalContentId === 'churnedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{data.churnedMonthlyMajor.map((item: ChurnedDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d'}}>Last Recurring Gift: {formatAmount(item.lastRecurringAmount)} on {formatDate(item.lastRecurringDate)}</span></div></li>))}</ul></div>)}
+        {modalContentId === 'churnedMajorOnetime' && (<div className="top-list-content"><ul className="top-list">{data.churnedOnetimeMajor.map((item: ChurnedDonorInfo, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d'}}>Last Gift: {formatDate(item.lastGiftDate)}</span></div></li>))}</ul></div>)}
+        {modalContentId === 'retainedMajorMonthly' && (<div className="top-list-content"><ul className="top-list">{data.retainedMajorMonthly.map((item: ClassifiedDonor, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.amount)}/month</div></li>))}</ul></div>)}
 
         {/* === Donation Tier Lists (YTD) === */}
-        {modalContentId === 'totalDonationsYTD' && (<div className="top-list-content"><ul className="top-list">{data.allGiftsYTD.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'totalOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{data.onetimeGiftsYTD.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'totalMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{data.monthlyGiftsYTD.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'majorOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{data.majorOnetimeYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'mediumOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{data.mediumOnetimeYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'normalOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{data.normalOnetimeYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'majorMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{data.majorMonthlyYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'mediumMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{data.mediumMonthlyYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'normalMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{data.normalMonthlyYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalDonationsYTD' && (<div className="top-list-content"><ul className="top-list">{data.allGiftsYTD.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{data.onetimeGiftsYTD.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{data.monthlyGiftsYTD.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{data.majorOnetimeYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{data.mediumOnetimeYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalOnetimeYTD' && (<div className="top-list-content"><ul className="top-list">{data.normalOnetimeYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{data.majorMonthlyYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{data.mediumMonthlyYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalMonthlyYTD' && (<div className="top-list-content"><ul className="top-list">{data.normalMonthlyYTD.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
 
         {/* === Donation Tier Lists (All-Time) === */}
-        {modalContentId === 'totalOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{data.majorOnetimeAllTime.gifts.concat(data.mediumOnetimeAllTime.gifts, data.normalOnetimeAllTime.gifts).sort((a: GiftWithDonor, b: GiftWithDonor) => new Date(b.giftdate!).getTime() - new Date(a.giftdate!).getTime()).map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'totalMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{data.majorMonthlyAllTime.gifts.concat(data.mediumMonthlyAllTime.gifts, data.normalMonthlyAllTime.gifts).sort((a: GiftWithDonor, b: GiftWithDonor) => new Date(b.giftdate!).getTime() - new Date(a.giftdate!).getTime()).map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'majorOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{data.majorOnetimeAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'mediumOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{data.mediumOnetimeAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'normalOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{data.normalOnetimeAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'majorMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{data.majorMonthlyAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'mediumMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{data.mediumMonthlyAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
-        {modalContentId === 'normalMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{data.normalMonthlyAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}</div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{data.majorOnetimeAllTime.gifts.concat(data.mediumOnetimeAllTime.gifts, data.normalOnetimeAllTime.gifts).sort((a: GiftWithDonor, b: GiftWithDonor) => new Date(b.giftdate!).getTime() - new Date(a.giftdate!).getTime()).map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'totalMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{data.majorMonthlyAllTime.gifts.concat(data.mediumMonthlyAllTime.gifts, data.normalMonthlyAllTime.gifts).sort((a: GiftWithDonor, b: GiftWithDonor) => new Date(b.giftdate!).getTime() - new Date(a.giftdate!).getTime()).map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{data.majorOnetimeAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{data.mediumOnetimeAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalOnetimeAllTime' && (<div className="top-list-content"><ul className="top-list">{data.normalOnetimeAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{data.majorMonthlyAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'mediumMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{data.mediumMonthlyAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
+        {modalContentId === 'normalMonthlyAllTime' && (<div className="top-list-content"><ul className="top-list">{data.normalMonthlyAllTime.gifts.map((item: GiftWithDonor, i: number) => (<li key={item.giftid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor?.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor?.donorid)}>{donorFullName(item.donor)}</span></div><div className="top-list-secondary">{formatAmount(item.totalamount)} on {formatDate(item.giftdate)}</div></li>))}</ul></div>)}
 
         {/* === Contribution & Lifetime Value === */}
-        {modalContentId === 'majorDonorContribution' && (<div className="top-list-content"><ul className="top-list">{data.majorContributorsList.map((item: ContributionListItem, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
+        {modalContentId === 'majorDonorContribution' && (<div className="top-list-content"><ul className="top-list">{data.majorContributorsList.map((item: ContributionListItem, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul></div>)}
         {modalContentId === 'monthlyMajorDLV' && (
           <div className="top-list-content">
             <div className="dlv-breakdown">
               <p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(data.monthlyDlvComponents.avgLifetimeTotal)}</p><hr/><p><em>DLV Formula Components:</em></p><p><strong>Average Gift Amount:</strong> {formatAmount(data.monthlyDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {data.monthlyDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {data.monthlyDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(data.monthlyDlvComponents.amount)} &times; {data.monthlyDlvComponents.frequency.toFixed(2)} &times; {data.monthlyDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(data.monthlyMajorDLV)}</strong></p>
             </div>
-            <ul className="top-list">{data.monthlyDlvCohort.map((item: ContributionListItem, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul>
+            <ul className="top-list">{data.monthlyDlvCohort.map((item: ContributionListItem, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul>
           </div>
         )}
         {modalContentId === 'onetimeMajorDLV' && (
@@ -828,7 +1086,7 @@ const Metrics: React.FC = () => {
             <div className="dlv-breakdown">
               <p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(data.onetimeDlvComponents.avgLifetimeTotal)}</p><hr/><p><em>DLV Formula Components:</em></p><p><strong>Average Gift Amount:</strong> {formatAmount(data.onetimeDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {data.onetimeDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {data.onetimeDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(data.onetimeDlvComponents.amount)} &times; {data.onetimeDlvComponents.frequency.toFixed(2)} &times; {data.onetimeDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(data.onetimeMajorDLV)}</strong></p>
             </div>
-            {<ul className="top-list">{data.onetimeDlvCohort.map((item: ContributionListItem, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar">{donorInitials(item.donor)}</div><div className="top-list-details">{donorFullName(item.donor)}<br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul>}
+            {<ul className="top-list">{data.onetimeDlvCohort.map((item: ContributionListItem, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul>}
           </div>
         )}
       </Modal>

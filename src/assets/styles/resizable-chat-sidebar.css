@@ -1,15 +1,28 @@
 .resizable-chat-sidebar {
-  position: relative;
-  border-left: 1px solid var(--border-color);
+  /* This is the key change to make it float */
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  
+  /* Styling to match the new dashboard aesthetic */
+  background-color: var(--revamped-surface, #FFFFFF);
+  border-radius: 12px;
+  border: 1px solid var(--revamped-border, #E4E4E7);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  
+  /* Sizing and layout */
+  height: 60vh;
+  max-height: 500px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, height 0.3s ease, background-color 0.3s ease, border 0.3s ease;
+  z-index: 100;
 }
 
 .resize-handle {
   position: absolute;
-  left: 0;
+  left: -3px;
   top: 0;
   width: 6px;
   height: 100%;
@@ -20,31 +33,31 @@
 
 .resize-handle:hover,
 .resize-handle:active {
-  background-color: rgba(var(--primary-color-rgb), 0.2);
+  background-color: rgba(109, 40, 217, 0.2);
 }
 
 .collapse-button {
   position: absolute;
-  left: 0;
   top: 50%;
-  transform: translateY(-50%);
+  left: 20px;
+  transform: translate(-50%, -50%); /* This correctly centers the button on the edge */
   width: 24px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--primary-color);
+  background-color: var(--revamped-primary, #6D28D9);
   color: white;
   border: none;
-  border-radius: 0 4px 4px 0;
+  border-radius: 8px;
   cursor: pointer;
   z-index: 11;
   padding: 0;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .collapse-button:hover {
-  background-color: var(--secondary-color);
+  background-color: #5B21B6; /* A slightly darker purple */
 }
 
 .chat-content {
@@ -54,52 +67,32 @@
   flex-direction: column;
 }
 
-/* Collapsed state */
+/* --- Collapsed State --- */
 .resizable-chat-sidebar.collapsed {
-  width: 40px !important;
+  /* It becomes a small, invisible anchor in the corner */
+  width: 60px !important;
+  height: 60px !important;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible; /* Allows the button to be seen outside its bounds */
 }
 
+.resizable-chat-sidebar.collapsed .chat-content,
 .resizable-chat-sidebar.collapsed .resize-handle {
   display: none;
 }
 
 .resizable-chat-sidebar.collapsed .collapse-button {
-  left: 8px;
-}
-
-/* Responsive styles */
-@media (max-width: 768px) {
-  .resizable-chat-sidebar {
-    width: 100% !important;
-    height: 40vh;
-    border-left: none;
-    border-top: 1px solid var(--border-color);
-  }
-  
-  .resizable-chat-sidebar.collapsed {
-    height: 40px !important;
-    width: 100% !important;
-  }
-  
-  .resize-handle {
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 6px;
-    cursor: ns-resize;
-  }
-  
-  .collapse-button {
-    left: 50%;
-    top: 0;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 24px;
-    border-radius: 0 0 4px 4px;
-  }
-  
-  .resizable-chat-sidebar.collapsed .collapse-button {
-    left: 50%;
-    top: 8px;
-  }
+  /* It becomes the floating button */
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  transform: none;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }

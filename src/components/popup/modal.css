@@ -1,74 +1,380 @@
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(5px);
-  animation: fadeIn 0.3s ease;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 99999 !important;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay.closing {
+  animation: fadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-content {
-  background-color: var(--surface-color, #fff);
+  background: var(--surface-color, #fff);
   width: 90%;
-  max-width: 800px;
-  max-height: 80vh;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-width: 850px;
+  max-height: 85vh;
+  border-radius: 16px;
+  border: 1px solid var(--border-color, rgba(139, 92, 246, 0.15));
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    0 8px 16px rgba(139, 92, 246, 0.1);
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-overlay.closing .modal-content {
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(139, 92, 246, 0.3) 20%, 
+    rgba(139, 92, 246, 0.5) 50%, 
+    rgba(139, 92, 246, 0.3) 80%, 
+    transparent 100%);
+  z-index: 2;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color, #e9ecef);
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border-color, rgba(139, 92, 246, 0.1));
+  background: rgba(139, 92, 246, 0.02);
+  position: relative;
+  z-index: 3;
 }
 
 .modal-title {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary-color);
+  letter-spacing: -0.2px;
 }
 
 .modal-close-button {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
+  background: var(--card-color, rgba(139, 92, 246, 0.05));
+  border: 1px solid var(--border-color, rgba(139, 92, 246, 0.1));
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
   cursor: pointer;
   color: var(--text-secondary-color, #6c757d);
-  transition: color 0.2s;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close-button:hover {
-  color: var(--text-primary-color, #212529);
+  background: var(--card-color-hover, rgba(139, 92, 246, 0.1));
+  border-color: rgba(139, 92, 246, 0.2);
+  color: rgba(139, 92, 246, 0.8);
+  transform: scale(1.05);
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 2rem;
   overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  background: var(--surface-color, #fff);
+  flex: 1;
 }
 
-/* Re-using your existing top-list styles inside the modal */
+/* Custom scrollbar for modal body */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: var(--text-primary-color, rgba(139, 92, 246, 0.05));
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+/* Enhanced top-list styles inside the modal */
 .modal-body .top-list {
   margin: 0;
   padding: 0;
+  background: var(--card-color, rgba(139, 92, 246, 0.02));
+  border-radius: 12px;
+  border: 1px solid var(--border-color, rgba(139, 92, 246, 0.1));
+  overflow: hidden;
+  animation: listFadeIn 0.6s ease-out;
+}
+
+.modal-body .top-list-item {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color, rgba(139, 92, 246, 0.08));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--surface-color, #fff);
+  display: flex;
+  align-items: center;
+  animation: itemSlideIn 0.4s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Stagger animation for list items */
+.modal-body .top-list-item:nth-child(1) { animation-delay: 0.1s; }
+.modal-body .top-list-item:nth-child(2) { animation-delay: 0.15s; }
+.modal-body .top-list-item:nth-child(3) { animation-delay: 0.2s; }
+.modal-body .top-list-item:nth-child(4) { animation-delay: 0.25s; }
+.modal-body .top-list-item:nth-child(5) { animation-delay: 0.3s; }
+.modal-body .top-list-item:nth-child(n+6) { animation-delay: 0.35s; }
+
+.modal-body .top-list-item:hover {
+  background: var(--card-color-hover, rgba(139, 92, 246, 0.04));
+  transform: translateX(4px) scale(1.01);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+}
+
+.modal-body .top-list-item:last-child {
+  border-bottom: none;
+}
+
+/* Text styling for names and dates */
+.modal-body .top-list-details {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.modal-body .top-list-details,
+.modal-body .top-list-secondary {
+  color: var(--text-primary-color);
+  line-height: 1.4;
+}
+
+/* Secondary text (dates, emails) styling */
+.modal-body .top-list-details span,
+.modal-body .top-list-secondary span {
+  color: var(--text-secondary-color) !important;
+  font-size: 0.875rem;
+}
+
+/* Explicit subheader class for consistent styling across modals */
+.modal-body .top-list-subheader {
+  display: block;
+  color: var(--text-secondary-color) !important;
+  font-size: 0.875rem;
+}
+
+.modal-body .top-list-secondary {
+  text-align: right;
+  color: var(--text-primary-color);
+  font-weight: 600;
+}
+
+.modal-body .top-list-rank {
+  background: rgba(139, 92, 246, 0.1);
+  color: rgba(139, 92, 246, 0.9);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  font-weight: 700;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  margin-right: 1rem;
+  transition: all 0.3s ease;
+  animation: rankPulse 2s ease-in-out infinite;
+}
+
+.modal-body .top-list-item:hover .top-list-rank {
+  background: rgba(139, 92, 246, 0.2);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.modal-body .top-list-avatar {
+  background: rgba(139, 92, 246, 0.8);
+  color: var(--text-white-color);
+  font-weight: 700;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  margin-right: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Fallback: show pointer on avatars within modal list items */
+.modal-body .top-list-item .top-list-avatar {
+  cursor: pointer;
+}
+
+/* Make avatars that are interactive show pointer and clearer hover affordance */
+.modal-body .top-list-avatar.clickable,
+.modal-body .top-list-avatar[role="button"] {
+  cursor: pointer;
+}
+
+.modal-body .top-list-avatar::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: rotate(45deg);
+  transition: all 0.6s ease;
+  opacity: 0;
+}
+
+.modal-body .top-list-item:hover .top-list-avatar {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.modal-body .top-list-item:hover .top-list-avatar::before {
+  opacity: 1;
+  transform: translateX(100%) translateY(-100%) rotate(45deg);
+}
+
+/* Clickable donor name styling within modal lists */
+.modal-body .clickable-name {
+  cursor: pointer;
+  color: var(--text-primary-color);
+  text-decoration: none;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.modal-body .clickable-name:hover {
+  color: rgba(139, 92, 246, 0.95);
+  text-decoration: underline;
+  text-decoration-color: rgba(139, 92, 246, 0.8);
+}
+
+.modal-body .clickable-name:active {
+  color: rgba(139, 92, 246, 1);
+}
+
+.modal-body .clickable-name:focus-visible {
+  outline: 2px solid rgba(139, 92, 246, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { 
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to { 
+    opacity: 1;
+    backdrop-filter: blur(12px);
+  }
+}
+
+@keyframes fadeOut {
+  from { 
+    opacity: 1;
+    backdrop-filter: blur(12px);
+  }
+  to { 
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { 
+    transform: translateY(30px) scale(0.95); 
+    opacity: 0;
+  }
+  to { 
+    transform: translateY(0) scale(1); 
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from { 
+    transform: translateY(0) scale(1); 
+    opacity: 1;
+  }
+  to { 
+    transform: translateY(20px) scale(0.98); 
+    opacity: 0;
+  }
+}
+
+/* New professional animations */
+@keyframes listFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes itemSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes rankPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }

@@ -11,7 +11,9 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) {
+  const [isClosing, setIsClosing] = React.useState(false);
+
+  if (!isOpen && !isClosing) {
     return null;
   }
 
@@ -20,12 +22,20 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
     e.stopPropagation();
   };
 
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 300); // Match the animation duration
+  };
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className="modal-content" onClick={handleContentClick}>
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>
-          <button className="modal-close-button" onClick={onClose}>
+          <button className="modal-close-button" onClick={handleClose}>
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
