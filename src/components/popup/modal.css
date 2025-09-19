@@ -11,10 +11,22 @@
   z-index: 99999 !important;
   backdrop-filter: blur(8px);
   animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Prevent pointer events during animation to avoid flash */
+  pointer-events: auto;
 }
 
 .modal-overlay.closing {
   animation: fadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+/* Disable backdrop clicks during opening animation */
+.modal-overlay.opening {
+  pointer-events: none;
+}
+
+.modal-overlay.opening .modal-content {
+  pointer-events: auto;
 }
 
 .modal-content {

@@ -8,8 +8,7 @@ import donorLoopLogo from '../../assets/images/donor-loop-logo.png';
 import '../styles/UnifiedHeader.css';
 
 const navItems = [
-  { path: '/new-dashboard2', label: 'Overview' },
-  { path: '/new-dashboard', label: 'Dashboard 2' },
+  { path: '/dashboard', label: 'Overview' },
   { path: '/donor-manager', label: 'Donors' },
   { path: '/fundraising-manager', label: 'Fundraising' },
   { path: '/metrics', label: 'Analytics' },

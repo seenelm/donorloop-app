@@ -17,8 +17,6 @@ import DataLibrary from './pages/DataLibrary';
 import './App.css';
 import './pages/styles/Dashboard.css';
 import Metrics from './pages/Metrics';
-import NewDashboard from './pages/NewDashBoard';
-import NewDashboard2 from './pages/NewDashboard2';
 import UnifiedHeader from './components/navigation/UnifiedHeader';
 import PageTransitionWrapper from './components/transitions/PageTransitionWrapper';
 
@@ -37,9 +35,7 @@ const AuthenticatedLayout = () => {
             <Route path="/data-library" element={<DataLibrary />} />
             <Route path="/auth-admin" element={<AuthAdmin />} />
             <Route path="/metrics" element={<Metrics />} />
-            <Route path="/new-dashboard" element={<NewDashboard />} />
-            <Route path="/new-dashboard2" element={<NewDashboard2 />} />
-            <Route path="*" element={<Navigate to="/new-dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </PageTransitionWrapper>
         <ResizableChatSidebar />

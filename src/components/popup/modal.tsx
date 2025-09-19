@@ -12,8 +12,40 @@ interface ModalProps {
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
   const [isClosing, setIsClosing] = React.useState(false);
+  const [shouldRender, setShouldRender] = React.useState(isOpen);
+  const [isAnimating, setIsAnimating] = React.useState(false);
 
-  if (!isOpen && !isClosing) {
+  // Handle opening
+  React.useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
+      setIsAnimating(true);
+      
+      // Allow backdrop clicks after opening animation completes
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+      }, 400); // Match the opening animation duration
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // Handle closing
+  React.useEffect(() => {
+    if (!isOpen && shouldRender) {
+      setIsClosing(true);
+      const timer = setTimeout(() => {
+        setIsClosing(false);
+        setShouldRender(false);
+        setIsAnimating(false);
+      }, 300); // Match the closing animation duration
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, shouldRender]);
+
+  if (!shouldRender) {
     return null;
   }
 
@@ -22,16 +54,26 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
     e.stopPropagation();
   };
 
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Prevent closing during animations to avoid flash
+    if (isAnimating || isClosing) {
+      return;
+    }
+    
+    // Only close if clicking the backdrop, not the content
+    if (e.target === e.currentTarget) {
       onClose();
-    }, 300); // Match the animation duration
+    }
+  };
+
+  const handleClose = () => {
+    if (!isAnimating && !isClosing) {
+      onClose();
+    }
   };
 
   return (
-    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
+    <div className={`modal-overlay ${isClosing ? 'closing' : ''} ${isAnimating ? 'opening' : ''}`} onClick={handleBackdropClick}>
       <div className="modal-content" onClick={handleContentClick}>
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>
