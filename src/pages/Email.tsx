@@ -3,7 +3,7 @@ import './styles/Email.css';
 import Controls from '../components/controls/Controls';
 import { fetchDonors } from '../utils/supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane, faTrash, faSave, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { faPaperPlane, faTrash, faSave } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
 // Email interface

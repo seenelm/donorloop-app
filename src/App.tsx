@@ -18,7 +18,6 @@ import './App.css';
 import './pages/styles/Dashboard.css';
 import Metrics from './pages/Metrics';
 import NewDashboard from './pages/NewDashBoard';
-import Email from './pages/Email';
 import NewDashboard2 from './pages/NewDashboard2';
 import UnifiedHeader from './components/navigation/UnifiedHeader';
 import PageTransitionWrapper from './components/transitions/PageTransitionWrapper';
@@ -39,7 +38,6 @@ const AuthenticatedLayout = () => {
             <Route path="/auth-admin" element={<AuthAdmin />} />
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/new-dashboard" element={<NewDashboard />} />
-            <Route path="/email" element={<Email />} />
             <Route path="/new-dashboard2" element={<NewDashboard2 />} />
             <Route path="*" element={<Navigate to="/new-dashboard" replace />} />
           </Routes>
