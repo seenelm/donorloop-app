@@ -12,6 +12,7 @@ const navItems = [
   { path: '/donor-manager', label: 'Donors' },
   { path: '/fundraising-manager', label: 'Fundraising' },
   { path: '/metrics', label: 'Analytics' },
+  { path: '/email-analytics', label: 'Email Analytics' },
   { path: '/data-library', label: 'Data Library' },
 ];
 

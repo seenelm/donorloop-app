@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard';
 import FundraisingManager from './pages/FundraisingManager';
 import DonorManager from './pages/DonorManager';
 import DonorProfile from './pages/DonorProfile';
+import EmailAnalytics from './pages/EmailAnalytics';
 import ResizableChatSidebar from './components/chat/ResizableChatSidebar';
 import FloatingChatButton from './components/chat/FloatingChatButton';
 import { ChatSidebarProvider } from './context/ChatSidebarContext';
@@ -35,6 +36,7 @@ const AuthenticatedLayout = () => {
             <Route path="/data-library" element={<DataLibrary />} />
             <Route path="/auth-admin" element={<AuthAdmin />} />
             <Route path="/metrics" element={<Metrics />} />
+            <Route path="/email-analytics" element={<EmailAnalytics />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </PageTransitionWrapper>
