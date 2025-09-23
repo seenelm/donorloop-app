@@ -18,6 +18,7 @@ import './App.css';
 import './pages/styles/Dashboard.css';
 import Metrics from './pages/Metrics';
 import NewDashboard from './pages/NewDashBoard';
+import Email from './pages/Email';
 
 // AuthenticatedLayout component that includes sidebar and other app elements
 const AuthenticatedLayout = () => {
@@ -37,6 +38,7 @@ const AuthenticatedLayout = () => {
             <Route path="/auth-admin" element={<AuthAdmin />} />
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/new-dashboard" element={<NewDashboard />} />
+            <Route path="/email" element={<Email />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
