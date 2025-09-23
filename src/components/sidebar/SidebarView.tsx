@@ -57,7 +57,7 @@ export const SidebarView: React.FC<SidebarProps> = (props) => {
           <FontAwesomeIcon icon={faUsers} />
           <span>Donors</span>
         </button>
-        
+
         <button 
           className={`tab-button ${currentPath === '/data-library' ? 'active' : ''}`}
           onClick={() => navigate('/data-library')}
