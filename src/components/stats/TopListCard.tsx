@@ -16,6 +16,7 @@ interface TopListCardProps {
   variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'info';
   items: ListItem[];
   isMonetary?: boolean;
+  onItemClick?: (id: string | number) => void;
 }
 
 const TopListCard: React.FC<TopListCardProps> = ({
@@ -23,7 +24,8 @@ const TopListCard: React.FC<TopListCardProps> = ({
   icon,
   variant = 'primary',
   items,
-  isMonetary = false
+  isMonetary = false,
+  onItemClick
 }) => {
   // Format currency if needed
   const formatValue = (value: string | number): string => {
@@ -56,16 +58,39 @@ const TopListCard: React.FC<TopListCardProps> = ({
               <li key={item.id} className="top-list-item">
                 <div className="top-list-rank">{index + 1}</div>
                 {item.avatar ? (
-                  <div className="top-list-avatar">
+                  <div
+                    className="top-list-avatar"
+                    onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                    role={onItemClick ? 'button' : undefined}
+                    tabIndex={onItemClick ? 0 : undefined}
+                    style={onItemClick ? { cursor: 'pointer' } : undefined}
+                    title={onItemClick ? 'View donor profile' : undefined}
+                  >
                     {item.avatar.charAt(0).toUpperCase()}
                   </div>
                 ) : (
-                  <div className="top-list-avatar">
+                  <div
+                    className="top-list-avatar"
+                    onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                    role={onItemClick ? 'button' : undefined}
+                    tabIndex={onItemClick ? 0 : undefined}
+                    style={onItemClick ? { cursor: 'pointer' } : undefined}
+                    title={onItemClick ? 'View donor profile' : undefined}
+                  >
                     {item.primary.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="top-list-details">
-                  <div className="top-list-primary">{item.primary}</div>
+                  <div
+                    className={`top-list-primary${onItemClick ? ' clickable-name' : ''}`}
+                    onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                    role={onItemClick ? 'button' : undefined}
+                    tabIndex={onItemClick ? 0 : undefined}
+                    style={onItemClick ? { cursor: 'pointer' } : undefined}
+                    title={onItemClick ? 'View donor profile' : undefined}
+                  >
+                    {item.primary}
+                  </div>
                 </div>
                 <div className="top-list-secondary">
                   {formatValue(item.secondary)}
