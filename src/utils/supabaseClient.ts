@@ -546,6 +546,47 @@ export async function fetchEngagementByDonorId(donorId: string): Promise<{
 }
 
 /**
+ * Fetch engagement records for a specific donor by email address
+ * This function first finds the donor by email, then fetches their engagement records
+ */
+export async function fetchEngagementByDonorEmail(email: string): Promise<{
+  data: EngagementData[] | null;
+  error: string | null;
+}> {
+  try {
+    console.log(`Fetching engagement records for donor email: ${email}`);
+    
+    // First find the donor by email
+    const { data: donorData, error: donorError } = await findDonorByEmail(email);
+    
+    if (donorError) {
+      throw new Error(donorError);
+    }
+    
+    if (!donorData) {
+      console.log(`No donor found for email: ${email}`);
+      return { data: [], error: null };
+    }
+    
+    // Now fetch engagement records for this donor
+    const { data: engagementData, error: engagementError } = await fetchEngagementByDonorId(donorData.donorid);
+    
+    if (engagementError) {
+      throw new Error(engagementError);
+    }
+    
+    console.log(`Found ${engagementData?.length || 0} engagement records for donor email ${email}`);
+    return { data: engagementData, error: null };
+  } catch (error) {
+    console.error(`Error fetching engagement for donor email ${email}:`, error);
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
  * Check if engagement record exists for email ID
  */
 export async function findEngagementByEmailId(emailId: string): Promise<{

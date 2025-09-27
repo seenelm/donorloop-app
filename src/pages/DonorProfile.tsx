@@ -13,9 +13,12 @@ import {
   faReceipt,
   faPaperPlane,
   faSave,
-  faTrash
+  faTrash,
+  faInbox,
+  faEye
 } from '@fortawesome/free-solid-svg-icons';
-import { fetchDonorById, fetchGiftsByDonorId, type DonorData, type GiftData } from '../utils/supabaseClient';
+import { fetchDonorById, fetchGiftsByDonorId, fetchEngagementByDonorEmail, type DonorData, type GiftData, type EngagementData } from '../utils/supabaseClient';
+import { getSMTPStatisticsEvents, getEmailMaximumDetails } from '../utils/brevoClient';
 import axios from 'axios';
 import './styles/DonorProfile.css';
 
@@ -27,7 +30,9 @@ const DonorProfile: React.FC = () => {
   const [gifts, setGifts] = useState<GiftData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'gifts' | 'email'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'gifts' | 'engagement' | 'email'>('overview');
+  const [engagementRecords, setEngagementRecords] = useState<EngagementData[]>([]);
+  const [engagementLoading, setEngagementLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const loadDonorData = async () => {
@@ -59,6 +64,19 @@ const DonorProfile: React.FC = () => {
           
           if (giftsData) {
             setGifts(giftsData);
+          }
+          
+          // Fetch donor's email engagement records
+          if (donorData.email) {
+            setEngagementLoading(true);
+            const { data: engagementData, error: engagementError } = await fetchEngagementByDonorEmail(donorData.email);
+            
+            if (engagementError) {
+              console.error('Error fetching engagement records:', engagementError);
+            } else if (engagementData) {
+              setEngagementRecords(engagementData);
+            }
+            setEngagementLoading(false);
           }
         }
       } catch (err) {
@@ -174,6 +192,12 @@ const DonorProfile: React.FC = () => {
           Donation History ({gifts.length})
         </button>
         <button 
+          className={`tab-button ${activeTab === 'engagement' ? 'active' : ''}`}
+          onClick={() => setActiveTab('engagement')}
+        >
+          <FontAwesomeIcon icon={faInbox} /> Email Engagement ({engagementRecords.length})
+        </button>
+        <button 
           className={`tab-button ${activeTab === 'email' ? 'active' : ''}`}
           onClick={() => setActiveTab('email')}
         >
@@ -285,6 +309,14 @@ const DonorProfile: React.FC = () => {
                 </table>
               )}
             </div>
+          </div>
+        ) : activeTab === 'engagement' ? (
+          <div className="engagement-tab">
+            <EmailEngagement 
+              donor={donor} 
+              engagementRecords={engagementRecords} 
+              loading={engagementLoading} 
+            />
           </div>
         ) : (
           <div className="email-tab">
@@ -561,6 +593,424 @@ const EmailDonor: React.FC<EmailDonorProps> = ({ donor }) => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// EmailEngagement component for displaying email engagement history
+interface EmailEngagementProps {
+  donor: DonorData;
+  engagementRecords: EngagementData[];
+  loading: boolean;
+}
+
+interface EmailDetails {
+  messageId: string;
+  subject: string;
+  from: string;
+  date: string;
+  event: string;
+  status: 'delivered' | 'opened' | 'clicked' | 'bounced' | 'sent' | 'unknown';
+  // Extended details from Brevo API
+  recipients?: string[];
+  events?: Array<{
+    event: string;
+    date: string;
+    email: string;
+    ip?: string;
+    userAgent?: string;
+    url?: string;
+    reason?: string;
+  }>;
+  timeline?: Array<{
+    timestamp: string;
+    event: string;
+    recipient: string;
+    details: string;
+  }>;
+  totalRecipients?: number;
+  deliveredCount?: number;
+  openedCount?: number;
+  clickedCount?: number;
+  bouncedCount?: number;
+  deliveryRate?: number;
+  openRate?: number;
+  clickRate?: number;
+  bounceRate?: number;
+  templateId?: number;
+}
+
+const EmailEngagement: React.FC<EmailEngagementProps> = ({ donor, engagementRecords, loading }) => {
+  const [emailDetails, setEmailDetails] = useState<EmailDetails[]>([]);
+  const [selectedEmail, setSelectedEmail] = useState<EmailDetails | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
+  const [modalLoading, setModalLoading] = useState<boolean>(false);
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Get status badge class
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'delivered':
+        return 'status-badge delivered';
+      case 'opened':
+        return 'status-badge opened';
+      case 'clicked':
+        return 'status-badge clicked';
+      case 'bounced':
+      case 'hardbounces':
+      case 'softbounces':
+        return 'status-badge bounced';
+      case 'sent':
+      case 'requests':
+        return 'status-badge sent';
+      default:
+        return 'status-badge unknown';
+    }
+  };
+
+  // Load email details from Brevo
+  useEffect(() => {
+    const loadEmailDetails = async () => {
+      if (engagementRecords.length === 0) return;
+      
+      // Loading email details from Brevo API
+      const details: EmailDetails[] = [];
+
+      try {
+        // Get SMTP events for this donor's email
+        const eventsResponse = await getSMTPStatisticsEvents({
+          email: donor.email,
+          limit: 100,
+          sort: 'desc'
+        });
+
+        // Match events with engagement records
+        for (const record of engagementRecords) {
+          const matchingEvent = eventsResponse.events.find(event => event.messageId === record.email_id);
+          
+          if (matchingEvent) {
+            details.push({
+              messageId: record.email_id,
+              subject: matchingEvent.subject || 'No Subject',
+              from: matchingEvent.from || 'Unknown Sender',
+              date: record.created_at,
+              event: matchingEvent.event,
+              status: matchingEvent.event as EmailDetails['status']
+            });
+          } else {
+            // If no matching event found, create a basic record
+            details.push({
+              messageId: record.email_id,
+              subject: 'Email Sent',
+              from: 'System',
+              date: record.created_at,
+              event: 'sent',
+              status: 'sent'
+            });
+          }
+        }
+
+        setEmailDetails(details);
+      } catch (error) {
+        console.error('Error loading email details:', error);
+        // Create basic records if API fails
+        const basicDetails = engagementRecords.map(record => ({
+          messageId: record.email_id,
+          subject: 'Email Sent',
+          from: 'System',
+          date: record.created_at,
+          event: 'sent',
+          status: 'sent' as EmailDetails['status']
+        }));
+        setEmailDetails(basicDetails);
+      } finally {
+        // Email details loading complete
+      }
+    };
+
+    loadEmailDetails();
+  }, [engagementRecords, donor.email]);
+
+  // Handle viewing email details
+  const handleViewDetails = async (email: EmailDetails) => {
+    setModalLoading(true);
+    setShowDetailsModal(true);
+    
+    try {
+      const details = await getEmailMaximumDetails(email.messageId);
+      setSelectedEmail({
+        ...email,
+        ...details.messageDetails
+      });
+    } catch (error) {
+      console.error('Error getting email details:', error);
+      setSelectedEmail(email);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="engagement-loading">
+        <p>Loading email engagement history...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="engagement-container">
+      <div className="engagement-header">
+        <h2>Email Engagement History</h2>
+        <p>All emails sent to {donor.firstname} {donor.lastname} ({donor.email})</p>
+      </div>
+
+      {emailDetails.length === 0 ? (
+        <div className="no-engagement">
+          <p>No email engagement records found for this donor.</p>
+          <p>Emails sent to this donor will appear here once they are tracked in the system.</p>
+        </div>
+      ) : (
+        <div className="engagement-list-card">
+          <table className="engagement-table">
+            <thead>
+              <tr>
+                <th>Date Sent</th>
+                <th>Subject</th>
+                <th>From</th>
+                <th>Status</th>
+                <th>Message ID</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {emailDetails.map((email, index) => (
+                <tr key={`${email.messageId}-${index}`}>
+                  <td>
+                    <FontAwesomeIcon icon={faCalendarAlt} />
+                    {formatDate(email.date)}
+                  </td>
+                  <td className="email-subject">{email.subject}</td>
+                  <td>{email.from}</td>
+                  <td>
+                    <span className={getStatusBadge(email.status)}>
+                      {email.status.charAt(0).toUpperCase() + email.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="message-id">{email.messageId.substring(0, 20)}...</td>
+                  <td>
+                    <button 
+                      className="view-details-button"
+                      onClick={() => handleViewDetails(email)}
+                    >
+                      <FontAwesomeIcon icon={faEye} /> View Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Email Analytics Modal */}
+      {showDetailsModal && (
+        <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
+          <div className="modal-content email-analytics-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Email Analytics</h3>
+              <button 
+                className="modal-close-button"
+                onClick={() => setShowDetailsModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              {modalLoading ? (
+                <div className="modal-loading">
+                  <div className="loading-spinner"></div>
+                  <p>Loading detailed analytics...</p>
+                </div>
+              ) : selectedEmail ? (
+                <>
+                  {/* Basic Information */}
+                  <div className="analytics-section">
+                    <h4>Basic Information</h4>
+                    <div className="analytics-grid">
+                      <div className="analytics-item">
+                        <label>Subject</label>
+                        <p>{selectedEmail.subject}</p>
+                      </div>
+                      <div className="analytics-item">
+                        <label>From</label>
+                        <p>{selectedEmail.from}</p>
+                      </div>
+                      <div className="analytics-item">
+                        <label>To</label>
+                        <p>{donor.email}</p>
+                      </div>
+                      <div className="analytics-item">
+                        <label>Date Sent</label>
+                        <p>{formatDate(selectedEmail.date)}</p>
+                      </div>
+                      <div className="analytics-item">
+                        <label>Status</label>
+                        <span className={getStatusBadge(selectedEmail.status)}>
+                          {selectedEmail.status.charAt(0).toUpperCase() + selectedEmail.status.slice(1)}
+                        </span>
+                      </div>
+                      {selectedEmail.templateId && (
+                        <div className="analytics-item">
+                          <label>Template ID</label>
+                          <p>{selectedEmail.templateId}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Performance Metrics */}
+                  {selectedEmail.totalRecipients && (
+                    <div className="analytics-section">
+                      <h4>Performance Metrics</h4>
+                      <div className="metrics-grid">
+                        <div className="metric-card">
+                          <div className="metric-value">{selectedEmail.totalRecipients || 1}</div>
+                          <div className="metric-label">Total Recipients</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{selectedEmail.deliveredCount || 0}</div>
+                          <div className="metric-label">Delivered</div>
+                          <div className="metric-percentage">{selectedEmail.deliveryRate?.toFixed(1) || '0'}%</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{selectedEmail.openedCount || 0}</div>
+                          <div className="metric-label">Opened</div>
+                          <div className="metric-percentage">{selectedEmail.openRate?.toFixed(1) || '0'}%</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{selectedEmail.clickedCount || 0}</div>
+                          <div className="metric-label">Clicked</div>
+                          <div className="metric-percentage">{selectedEmail.clickRate?.toFixed(1) || '0'}%</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{selectedEmail.bouncedCount || 0}</div>
+                          <div className="metric-label">Bounced</div>
+                          <div className="metric-percentage">{selectedEmail.bounceRate?.toFixed(1) || '0'}%</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Event Timeline */}
+                  {selectedEmail.timeline && selectedEmail.timeline.length > 0 && (
+                    <div className="analytics-section">
+                      <h4>Event Timeline</h4>
+                      <div className="timeline-container">
+                        {selectedEmail.timeline.map((event, index) => (
+                          <div key={index} className="timeline-item">
+                            <div className="timeline-marker">
+                              <div className={`timeline-dot ${event.event.toLowerCase()}`}></div>
+                            </div>
+                            <div className="timeline-content">
+                              <div className="timeline-header">
+                                <span className={`timeline-event ${event.event.toLowerCase()}`}>
+                                  {event.event.charAt(0).toUpperCase() + event.event.slice(1)}
+                                </span>
+                                <span className="timeline-time">
+                                  {formatDate(event.timestamp)}
+                                </span>
+                              </div>
+                              <div className="timeline-details">
+                                <p><strong>Recipient:</strong> {event.recipient}</p>
+                                <p><strong>Details:</strong> {event.details}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* All Events */}
+                  {selectedEmail.events && selectedEmail.events.length > 0 && (
+                    <div className="analytics-section">
+                      <h4>All Events ({selectedEmail.events.length})</h4>
+                      <div className="events-table-container">
+                        <table className="events-table">
+                          <thead>
+                            <tr>
+                              <th>Event</th>
+                              <th>Date</th>
+                              <th>Email</th>
+                              <th>IP Address</th>
+                              <th>Details</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedEmail.events.map((event, index) => (
+                              <tr key={index}>
+                                <td>
+                                  <span className={`event-badge ${event.event.toLowerCase()}`}>
+                                    {event.event}
+                                  </span>
+                                </td>
+                                <td>{formatDate(event.date)}</td>
+                                <td>{event.email}</td>
+                                <td className="ip-address">{event.ip || 'N/A'}</td>
+                                <td className="event-details">
+                                  {event.url && <div><strong>URL:</strong> {event.url}</div>}
+                                  {event.reason && <div><strong>Reason:</strong> {event.reason}</div>}
+                                  {event.userAgent && <div><strong>User Agent:</strong> {event.userAgent}</div>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Technical Details */}
+                  <div className="analytics-section">
+                    <h4>Technical Details</h4>
+                    <div className="technical-details">
+                      <div className="technical-item">
+                        <label>Message ID</label>
+                        <p className="message-id-full">{selectedEmail.messageId}</p>
+                      </div>
+                      {selectedEmail.recipients && (
+                        <div className="technical-item">
+                          <label>Recipients</label>
+                          <div className="recipients-list">
+                            {selectedEmail.recipients.map((recipient, index) => (
+                              <span key={index} className="recipient-tag">{recipient}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="modal-error">
+                  <p>Failed to load email details. Please try again.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
