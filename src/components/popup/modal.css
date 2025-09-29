@@ -31,9 +31,9 @@
 
 .modal-content {
   background: var(--surface-color, #fff);
-  width: 90%;
-  max-width: 850px;
-  max-height: 85vh;
+  width: 95%;
+  max-width: 1200px;
+  max-height: 90vh;
   border-radius: 16px;
   border: 1px solid var(--border-color, rgba(139, 92, 246, 0.15));
   box-shadow: 

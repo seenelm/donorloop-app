@@ -1,4 +1,4 @@
-/* Email Analytics Styles */
+/* Email Analytics Dashboard Styles - Scoped to prevent affecting other pages */
 .email-analytics-container {
   padding: 1.5rem;
   min-height: calc(100vh - 80px);
@@ -2482,5 +2482,556 @@
   .campaign-stats,
   .list-stats {
     text-align: left;
+  }
+}
+
+/* ========================================
+   NEW DASHBOARD SECTIONS - ENGAGEMENT FOCUSED
+   ======================================== */
+
+/* Overview Section */
+.email-analytics-container .overview-section {
+  margin-bottom: 3rem;
+}
+
+.email-analytics-container .overview-section h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 2rem 0;
+  color: var(--text-primary-color);
+  position: relative;
+  padding-left: 1rem;
+}
+
+.email-analytics-container .overview-section h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 28px;
+  background: linear-gradient(180deg, 
+    rgba(139, 92, 246, 0.9) 0%, 
+    rgba(168, 85, 247, 0.7) 100%);
+  border-radius: 2px;
+}
+
+.email-analytics-container .overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.email-analytics-container .overview-card {
+  background: linear-gradient(135deg, 
+    var(--card-color) 0%, 
+    rgba(139, 92, 246, 0.02) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 2px 8px rgba(139, 92, 246, 0.08),
+    0 1px 3px rgba(139, 92, 246, 0.06);
+}
+
+.email-analytics-container .overview-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.8) 0%, 
+    rgba(168, 85, 247, 0.6) 50%, 
+    rgba(147, 51, 234, 0.8) 100%);
+}
+
+.email-analytics-container .overview-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 12px 32px rgba(139, 92, 246, 0.15),
+    0 4px 12px rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.email-analytics-container .overview-card .card-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.1) 0%, 
+    rgba(168, 85, 247, 0.08) 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: rgba(139, 92, 246, 0.8);
+  flex-shrink: 0;
+}
+
+.email-analytics-container .overview-card .card-content {
+  flex: 1;
+}
+
+.email-analytics-container .overview-card .card-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary-color);
+  margin-bottom: 0.25rem;
+  line-height: 1.1;
+}
+
+.email-analytics-container .overview-card .card-label {
+  font-size: 0.95rem;
+  color: var(--text-secondary-color);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Performance Overview Section */
+.email-analytics-container .performance-overview {
+  margin-bottom: 3rem;
+}
+
+.email-analytics-container .performance-overview h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 2rem 0;
+  color: var(--text-primary-color);
+  position: relative;
+  padding-left: 1rem;
+}
+
+.email-analytics-container .performance-overview h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 28px;
+  background: linear-gradient(180deg, 
+    rgba(139, 92, 246, 0.9) 0%, 
+    rgba(168, 85, 247, 0.7) 100%);
+  border-radius: 2px;
+}
+
+.email-analytics-container .performance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.email-analytics-container .performance-card {
+  background: linear-gradient(135deg, 
+    var(--card-color) 0%, 
+    rgba(139, 92, 246, 0.02) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 2px 8px rgba(139, 92, 246, 0.08),
+    0 1px 3px rgba(139, 92, 246, 0.06);
+}
+
+.email-analytics-container .performance-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.8) 0%, 
+    rgba(168, 85, 247, 0.6) 50%, 
+    rgba(147, 51, 234, 0.8) 100%);
+}
+
+.email-analytics-container .performance-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 12px 32px rgba(139, 92, 246, 0.15),
+    0 4px 12px rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.email-analytics-container .performance-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.email-analytics-container .performance-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary-color);
+  margin: 0;
+}
+
+.email-analytics-container .performance-icon {
+  font-size: 1.25rem;
+}
+
+.email-analytics-container .performance-icon.delivered {
+  color: #10b981;
+}
+
+.email-analytics-container .performance-icon.opened {
+  color: #3b82f6;
+}
+
+.email-analytics-container .performance-icon.clicked {
+  color: #8b5cf6;
+}
+
+.email-analytics-container .performance-icon.bounced {
+  color: #ef4444;
+}
+
+.email-analytics-container .performance-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary-color);
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+
+.email-analytics-container .performance-details {
+  font-size: 0.9rem;
+  color: var(--text-secondary-color);
+  margin: 0;
+}
+
+/* Activity Timeline Section */
+.email-analytics-container .activity-timeline {
+  margin-bottom: 3rem;
+}
+
+.email-analytics-container .activity-timeline h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 2rem 0;
+  color: var(--text-primary-color);
+  position: relative;
+  padding-left: 1rem;
+}
+
+.email-analytics-container .activity-timeline h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 28px;
+  background: linear-gradient(180deg, 
+    rgba(139, 92, 246, 0.9) 0%, 
+    rgba(168, 85, 247, 0.7) 100%);
+  border-radius: 2px;
+}
+
+.email-analytics-container .timeline-container {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.email-analytics-container .timeline-container::before {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, 
+    rgba(139, 92, 246, 0.3) 0%, 
+    rgba(168, 85, 247, 0.2) 50%, 
+    rgba(147, 51, 234, 0.3) 100%);
+}
+
+.email-analytics-container .timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, 
+    var(--card-color) 0%, 
+    rgba(139, 92, 246, 0.02) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-left: 1rem;
+  transition: all 0.3s ease;
+}
+
+.email-analytics-container .timeline-item:hover {
+  transform: translateX(4px);
+  box-shadow: 
+    0 8px 25px rgba(139, 92, 246, 0.1),
+    0 3px 10px rgba(139, 92, 246, 0.08);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.email-analytics-container .timeline-marker {
+  position: absolute;
+  left: -2.5rem;
+  top: 1.5rem;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.9) 0%, 
+    rgba(168, 85, 247, 0.8) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.9rem;
+  box-shadow: 
+    0 4px 12px rgba(139, 92, 246, 0.3),
+    0 2px 6px rgba(139, 92, 246, 0.2);
+}
+
+.email-analytics-container .timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.email-analytics-container .timeline-event {
+  font-weight: 600;
+  color: var(--text-primary-color);
+  text-transform: capitalize;
+  font-size: 0.95rem;
+}
+
+.email-analytics-container .timeline-time {
+  font-size: 0.85rem;
+  color: var(--text-secondary-color);
+  background: rgba(139, 92, 246, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.email-analytics-container .timeline-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.email-analytics-container .timeline-subject {
+  font-weight: 600;
+  color: var(--text-primary-color);
+  font-size: 0.95rem;
+}
+
+.email-analytics-container .timeline-recipient {
+  font-size: 0.85rem;
+  color: var(--text-secondary-color);
+}
+
+.email-analytics-container .timeline-donor {
+  font-size: 0.85rem;
+  color: rgba(139, 92, 246, 0.8);
+  font-weight: 500;
+}
+
+.email-analytics-container .timeline-reason {
+  font-size: 0.8rem;
+  color: #ef4444;
+  font-style: italic;
+}
+
+/* Top Performing Donors Section */
+.email-analytics-container .top-performers-section {
+  margin-bottom: 3rem;
+}
+
+.email-analytics-container .top-performers-section h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 2rem 0;
+  color: var(--text-primary-color);
+  position: relative;
+  padding-left: 1rem;
+}
+
+.email-analytics-container .top-performers-section h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 28px;
+  background: linear-gradient(180deg, 
+    rgba(139, 92, 246, 0.9) 0%, 
+    rgba(168, 85, 247, 0.7) 100%);
+  border-radius: 2px;
+}
+
+.email-analytics-container .performers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.email-analytics-container .performer-card {
+  background: linear-gradient(135deg, 
+    var(--card-color) 0%, 
+    rgba(139, 92, 246, 0.02) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 2px 8px rgba(139, 92, 246, 0.08),
+    0 1px 3px rgba(139, 92, 246, 0.06);
+}
+
+.email-analytics-container .performer-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.8) 0%, 
+    rgba(168, 85, 247, 0.6) 50%, 
+    rgba(147, 51, 234, 0.8) 100%);
+}
+
+.email-analytics-container .performer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 12px 32px rgba(139, 92, 246, 0.15),
+    0 4px 12px rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.email-analytics-container .performer-rank {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.9) 0%, 
+    rgba(168, 85, 247, 0.8) 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  box-shadow: 
+    0 4px 12px rgba(139, 92, 246, 0.3),
+    0 2px 6px rgba(139, 92, 246, 0.2);
+}
+
+.email-analytics-container .performer-info {
+  flex: 1;
+}
+
+.email-analytics-container .performer-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary-color);
+  margin-bottom: 0.25rem;
+}
+
+.email-analytics-container .performer-email {
+  font-size: 0.85rem;
+  color: var(--text-secondary-color);
+  margin: 0;
+}
+
+.email-analytics-container .performer-metrics {
+  display: flex;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.email-analytics-container .performer-metrics .metric {
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(139, 92, 246, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  min-width: 60px;
+}
+
+.email-analytics-container .performer-metrics .metric-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary-color);
+  margin-bottom: 0.25rem;
+}
+
+.email-analytics-container .performer-metrics .metric-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary-color);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive Design for New Sections */
+@media (max-width: 768px) {
+  .email-analytics-container .overview-grid,
+  .email-analytics-container .performance-grid,
+  .email-analytics-container .performers-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .email-analytics-container .overview-card,
+  .email-analytics-container .performance-card,
+  .email-analytics-container .performer-card {
+    padding: 1.5rem;
+  }
+  
+  .email-analytics-container .overview-card .card-value,
+  .email-analytics-container .performance-value {
+    font-size: 2rem;
+  }
+  
+  .email-analytics-container .timeline-container {
+    padding-left: 1.5rem;
+  }
+  
+  .email-analytics-container .timeline-marker {
+    left: -2rem;
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+  
+  .email-analytics-container .performer-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .email-analytics-container .performer-metrics {
+    justify-content: center;
   }
 }
