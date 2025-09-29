@@ -141,7 +141,11 @@
   gap: 1.5rem;
 }
 
-.donor-details-card, .donor-summary-card, .gifts-list-card {
+.overview-tab .engagement-summary-card {
+  grid-column: 1 / -1; /* Span full width */
+}
+
+.donor-details-card, .donor-summary-card, .gifts-list-card, .engagement-summary-card {
   background-color: var(--card-color);
   border-radius: 8px;
   border: 1px solid var(--border-color);
@@ -149,11 +153,88 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.donor-details-card h2, .donor-summary-card h2, .gifts-list-card h2 {
+.donor-details-card h2, .donor-summary-card h2, .gifts-list-card h2, .engagement-summary-card h2 {
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0 0 1.5rem 0;
   color: var(--text-primary-color);
+}
+
+/* Engagement Summary Card */
+.engagement-summary-card {
+  margin-bottom: 1.5rem;
+}
+
+.engagement-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.engagement-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+  background: var(--background-color);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.engagement-stats .stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.engagement-stats .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+
+.engagement-stats .stat-value.opened {
+  color: #10b981;
+}
+
+.engagement-stats .stat-value.not-opened {
+  color: #6b7280;
+}
+
+.engagement-stats .stat-value.engagement-high {
+  color: #10b981;
+  font-weight: 800;
+}
+
+.engagement-stats .stat-value.engagement-medium {
+  color: #f59e0b;
+  font-weight: 800;
+}
+
+.engagement-stats .stat-value.engagement-low {
+  color: #ef4444;
+  font-weight: 800;
+}
+
+.engagement-stats .stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary-color);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.engagement-loading {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--background-color);
+  border-radius: 6px;
+  text-align: center;
+  color: var(--text-secondary-color);
+  font-style: italic;
 }
 
 .detail-item {
@@ -790,6 +871,8 @@
 .email-analytics-modal {
   max-width: 900px;
   width: 95%;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 .modal-header {
@@ -1150,6 +1233,75 @@
   border-radius: 16px;
   font-size: 0.85rem;
   font-weight: 500;
+}
+
+/* Email engagement status styling */
+.email-analytics-modal .engagement-status {
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.email-analytics-modal .engagement-status.opened {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.email-analytics-modal .engagement-status.not-opened {
+  background-color: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+}
+
+/* Email Preview Styling */
+.email-analytics-modal .email-preview-container {
+  margin-top: 1rem;
+}
+
+.email-analytics-modal .email-preview {
+  background: var(--card-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.email-analytics-modal .email-header-line {
+  display: flex;
+  margin-bottom: 0.75rem;
+  align-items: flex-start;
+}
+
+.email-analytics-modal .email-label {
+  font-weight: 600;
+  color: var(--text-secondary-color);
+  min-width: 60px;
+  margin-right: 1rem;
+  font-size: 0.9rem;
+}
+
+.email-analytics-modal .email-value {
+  color: var(--text-primary-color);
+  font-size: 0.9rem;
+  word-break: break-word;
+  flex: 1;
+}
+
+.email-analytics-modal .email-body-line {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.email-analytics-modal .email-body-content {
+  color: var(--text-primary-color);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--text-secondary-color);
 }
 
 /* Responsive styles for engagement tab */

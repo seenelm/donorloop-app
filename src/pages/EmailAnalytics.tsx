@@ -8,7 +8,12 @@ import {
   faCog,
   faClock,
   faChartLine,
-  faDatabase
+  faDatabase,
+  faCheckCircle,
+  faTimesCircle,
+  faEye,
+  faMousePointer,
+  faBolt
 } from '@fortawesome/free-solid-svg-icons';
 import { useEmailAnalytics } from '../components/hooks/useEmailAnalytics';
 import { testBrevoConnection } from '../utils/brevoClient';
@@ -80,11 +85,9 @@ const EmailAnalytics: React.FC = () => {
       if (response.data) {
         setEngagementRecords(response.data);
       } else {
-        console.error('Error loading engagement records:', response.error);
         setEngagementRecords([]);
       }
     } catch (error) {
-      console.error('Error loading engagement records:', error);
       setEngagementRecords([]);
     } finally {
       setEngagementLoading(false);
@@ -98,11 +101,6 @@ const EmailAnalytics: React.FC = () => {
 
   // Handle Email ID Analytics click
   const handleEmailIdAnalytics = async () => {
-    console.log('=== EMAIL ID ANALYTICS CLICKED ===');
-    console.log('About to generate modal...');
-    console.log('Current data state:', data);
-    console.log('Individual emails count:', data?.individualEmails?.length || 0);
-    
     setLoadingDetails(true);
     setSelectedEmailId(null);
     setSelectedEmailDetails(null);
@@ -110,7 +108,6 @@ const EmailAnalytics: React.FC = () => {
     
     // Open modal with the content
     const modalContent = generateEmailIdSelectorModal();
-    console.log('Modal content generated:', modalContent);
     openModal('Email ID Analytics', modalContent);
   };
 
@@ -702,11 +699,6 @@ const EmailAnalytics: React.FC = () => {
   };
 
   const generateEmailIdSelectorModal = () => {
-    console.log('Generating Email ID Selector Modal');
-    console.log('data object:', data);
-    console.log('getEmailDetails function:', getEmailDetails);
-    console.log('selectedEmailId state:', selectedEmailId);
-    console.log('loadingDetails state:', loadingDetails);
     
     // Check if we have individual emails data
     if (!data.individualEmails || data.individualEmails.length === 0) {
@@ -757,18 +749,14 @@ const EmailAnalytics: React.FC = () => {
     );
 
     const handleEmailSelect = async (messageId: string) => {
-      console.log('Selecting email with message ID:', messageId);
       setSelectedEmailId(messageId);
       setLoadingDetails(true);
       setSelectedEmailDetails(null);
       
       try {
-        console.log('Fetching details for message ID:', messageId);
         const details = await getEmailDetails(messageId);
-        console.log('Email details received:', details);
         setSelectedEmailDetails(details);
       } catch (error) {
-        console.error('Error loading email details:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to load email details';
         setSelectedEmailDetails({ 
           error: `Failed to load email details: ${errorMessage}`,
@@ -800,8 +788,6 @@ const EmailAnalytics: React.FC = () => {
                   key={email.messageId} 
                   className={`email-list-item ${selectedEmailId === email.messageId ? 'selected' : ''}`}
                   onClick={() => {
-                    console.log('Email clicked:', email.messageId);
-                    console.log('Full email object:', email);
                     handleEmailSelect(email.messageId);
                   }}
                 >
@@ -1023,9 +1009,118 @@ const EmailAnalytics: React.FC = () => {
         </div>
       )}
 
+      {/* Performance Overview */}
+      <div className="performance-overview">
+        <h2>Performance Overview</h2>
+        <div className="performance-grid">
+          <div className="performance-card">
+            <div className="performance-header">
+              <FontAwesomeIcon icon={faCheckCircle} className="performance-icon delivered" />
+              <h3>Delivery Rate</h3>
+            </div>
+            <div className="performance-value">
+              {(() => {
+                const delivered = data.individualEmails.filter(e => e.event === 'delivered').length;
+                const sent = data.individualEmails.filter(e => e.event === 'requests').length;
+                const rate = sent > 0 ? ((delivered / sent) * 100).toFixed(1) : '0';
+                return `${rate}%`;
+              })()}
+            </div>
+            <div className="performance-details">
+              {data.individualEmails.filter(e => e.event === 'delivered').length} delivered of {data.individualEmails.filter(e => e.event === 'requests').length} sent
+            </div>
+          </div>
+
+          <div className="performance-card">
+            <div className="performance-header">
+              <FontAwesomeIcon icon={faEye} className="performance-icon opened" />
+              <h3>Open Rate</h3>
+            </div>
+            <div className="performance-value">
+              {(() => {
+                const opened = data.individualEmails.filter(e => e.event === 'opened').length;
+                const delivered = data.individualEmails.filter(e => e.event === 'delivered').length;
+                const rate = delivered > 0 ? ((opened / delivered) * 100).toFixed(1) : '0';
+                return `${rate}%`;
+              })()}
+            </div>
+            <div className="performance-details">
+              {data.individualEmails.filter(e => e.event === 'opened').length} opens from {data.individualEmails.filter(e => e.event === 'delivered').length} delivered
+            </div>
+          </div>
+
+          <div className="performance-card">
+            <div className="performance-header">
+              <FontAwesomeIcon icon={faMousePointer} className="performance-icon clicked" />
+              <h3>Click Rate</h3>
+            </div>
+            <div className="performance-value">
+              {(() => {
+                const clicked = data.individualEmails.filter(e => e.event === 'clicked').length;
+                const delivered = data.individualEmails.filter(e => e.event === 'delivered').length;
+                const rate = delivered > 0 ? ((clicked / delivered) * 100).toFixed(1) : '0';
+                return `${rate}%`;
+              })()}
+            </div>
+            <div className="performance-details">
+              {data.individualEmails.filter(e => e.event === 'clicked').length} clicks from {data.individualEmails.filter(e => e.event === 'delivered').length} delivered
+            </div>
+          </div>
+
+          <div className="performance-card">
+            <div className="performance-header">
+              <FontAwesomeIcon icon={faTimesCircle} className="performance-icon bounced" />
+              <h3>Bounce Rate</h3>
+            </div>
+            <div className="performance-value">
+              {(() => {
+                const bounced = data.individualEmails.filter(e => e.event && (e.event.includes('Bounce') || e.event === 'blocked')).length;
+                const sent = data.individualEmails.filter(e => e.event === 'requests').length;
+                const rate = sent > 0 ? ((bounced / sent) * 100).toFixed(1) : '0';
+                return `${rate}%`;
+              })()}
+            </div>
+            <div className="performance-details">
+              {data.individualEmails.filter(e => e.event && (e.event.includes('Bounce') || e.event === 'blocked')).length} bounces from {data.individualEmails.filter(e => e.event === 'requests').length} sent
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Email Activity Timeline */}
+      <div className="activity-timeline">
+        <h2>Recent Email Activity</h2>
+        <div className="timeline-container">
+          {data.individualEmails.slice(0, 10).map((email, index) => (
+            <div key={`${email.messageId}-${index}`} className="timeline-item">
+              <div className="timeline-marker">
+                <FontAwesomeIcon icon={
+                  email.event === 'delivered' ? faCheckCircle :
+                  email.event === 'opened' ? faEye :
+                  email.event === 'clicked' ? faMousePointer :
+                  email.event === 'requests' ? faBolt :
+                  faEnvelope
+                } className={`timeline-icon ${email.event}`} />
+              </div>
+              <div className="timeline-content">
+                <div className="timeline-header">
+                  <span className="timeline-event">{email.event}</span>
+                  <span className="timeline-time">{formatDate(email.date)}</span>
+                </div>
+                <div className="timeline-details">
+                  <div className="timeline-subject">{email.subject || 'No Subject'}</div>
+                  <div className="timeline-recipient">To: {email.to[0]}</div>
+                  {email.reason && <div className="timeline-reason">Reason: {email.reason}</div>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Core Email Analytics */}
       <div className="metrics-section">
-        <h2>Email Analytics</h2>
+        <h2>Detailed Analytics</h2>
         <div className="metrics-grid">
           <StatCard
             title="Individual Emails"
@@ -1080,7 +1175,6 @@ const EmailAnalytics: React.FC = () => {
             variant="info"
             subtitle="Select & analyze specific emails"
             onClick={() => {
-              console.log('StatCard onClick triggered!');
               handleEmailIdAnalytics();
             }}
           />

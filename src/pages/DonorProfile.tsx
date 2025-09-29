@@ -33,6 +33,8 @@ const DonorProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'gifts' | 'engagement' | 'email'>('overview');
   const [engagementRecords, setEngagementRecords] = useState<EngagementData[]>([]);
   const [engagementLoading, setEngagementLoading] = useState<boolean>(false);
+  const [emailDetails, setEmailDetails] = useState<any[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const loadDonorData = async () => {
@@ -75,6 +77,42 @@ const DonorProfile: React.FC = () => {
               console.error('Error fetching engagement records:', engagementError);
             } else if (engagementData) {
               setEngagementRecords(engagementData);
+              
+              // Fetch email details from Brevo for status information
+              setDetailsLoading(true);
+              try {
+                const emailDetailsPromises = engagementData.map(async (record) => {
+                  try {
+                    const response = await getSMTPStatisticsEvents({
+                      messageId: record.email_id,
+                      limit: 100
+                    });
+                    const events = response?.events || [];
+                    return {
+                      messageId: record.email_id,
+                      events: events,
+                      hasOpened: events.some((event: any) => event.event === 'opened'),
+                      hasClicked: events.some((event: any) => event.event === 'clicked'),
+                      lastEvent: events.length > 0 ? events[events.length - 1].event : 'sent'
+                    };
+                  } catch (error) {
+                    return {
+                      messageId: record.email_id,
+                      events: [],
+                      hasOpened: false,
+                      hasClicked: false,
+                      lastEvent: 'sent'
+                    };
+                  }
+                });
+                
+                const details = await Promise.all(emailDetailsPromises);
+                setEmailDetails(details);
+              } catch (error) {
+                console.error('Error fetching email details:', error);
+              } finally {
+                setDetailsLoading(false);
+              }
             }
             setEngagementLoading(false);
           }
@@ -209,6 +247,93 @@ const DonorProfile: React.FC = () => {
       <div className="tab-content">
         {activeTab === 'overview' ? (
           <div className="overview-tab">
+            {/* Engagement Summary Card */}
+            <div className="engagement-summary-card">
+              <h2>Email Engagement</h2>
+              <div className="engagement-stats">
+                <div className="stat-item">
+                  <span className="stat-value">{engagementRecords.length}</span>
+                  <span className="stat-label">Emails Sent</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-value">
+                    {(() => {
+                      if (engagementRecords.length === 0) return 'N/A';
+                      const sortedRecords = [...engagementRecords].sort((a, b) => 
+                        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                      );
+                      return formatDate(sortedRecords[0].created_at);
+                    })()}
+                  </span>
+                  <span className="stat-label">Last Email Date</span>
+                </div>
+                <div className="stat-item">
+                  <span className={`stat-value ${(() => {
+                    if (detailsLoading || emailDetails.length === 0) return '';
+                    
+                    // Calculate engagement score based on open/click behavior
+                    const totalEmails = engagementRecords.length;
+                    const openedEmails = emailDetails.filter(detail => detail.hasOpened).length;
+                    const clickedEmails = emailDetails.filter(detail => detail.hasClicked).length;
+                    
+                    if (totalEmails === 0) return '';
+                    
+                    const openRate = openedEmails / totalEmails;
+                    const clickRate = clickedEmails / totalEmails;
+                    
+                    // High: >50% open rate OR any clicks
+                    // Medium: 20-50% open rate
+                    // Low: <20% open rate and no clicks
+                    if (clickRate > 0 || openRate > 0.5) return 'engagement-high';
+                    if (openRate >= 0.2) return 'engagement-medium';
+                    return 'engagement-low';
+                  })()}`}>
+                    {(() => {
+                      if (engagementRecords.length === 0) return 'N/A';
+                      if (detailsLoading) return 'Loading...';
+                      if (emailDetails.length === 0) return 'Unknown';
+                      
+                      // Calculate engagement score
+                      const totalEmails = engagementRecords.length;
+                      const openedEmails = emailDetails.filter(detail => detail.hasOpened).length;
+                      const clickedEmails = emailDetails.filter(detail => detail.hasClicked).length;
+                      
+                      const openRate = openedEmails / totalEmails;
+                      const clickRate = clickedEmails / totalEmails;
+                      
+                      // High: >50% open rate OR any clicks
+                      // Medium: 20-50% open rate
+                      // Low: <20% open rate and no clicks
+                      if (clickRate > 0 || openRate > 0.5) return 'High';
+                      if (openRate >= 0.2) return 'Medium';
+                      return 'Low';
+                    })()}
+                  </span>
+                  <span className="stat-label">Engagement Score</span>
+                </div>
+                <div className="stat-item">
+                  <span className={`stat-value ${(() => {
+                    if (detailsLoading) return '';
+                    const hasOpened = emailDetails.some(detail => detail.hasOpened);
+                    return hasOpened ? 'opened' : 'not-opened';
+                  })()}`}>
+                    {(() => {
+                      if (detailsLoading) return 'Loading...';
+                      if (emailDetails.length === 0) return 'Unknown';
+                      const hasOpened = emailDetails.some(detail => detail.hasOpened);
+                      return hasOpened ? 'Yes' : 'No';
+                    })()}
+                  </span>
+                  <span className="stat-label">Email Opened</span>
+                </div>
+              </div>
+              {(engagementLoading || detailsLoading) && (
+                <div className="engagement-loading">
+                  <p>{engagementLoading ? 'Loading engagement data...' : 'Loading email details...'}</p>
+                </div>
+              )}
+            </div>
+
             <div className="donor-details-card">
               <h2>Contact Information</h2>
               <div className="detail-item">
@@ -852,25 +977,13 @@ const EmailEngagement: React.FC<EmailEngagementProps> = ({ donor, engagementReco
                     <h4>Basic Information</h4>
                     <div className="analytics-grid">
                       <div className="analytics-item">
-                        <label>Subject</label>
-                        <p>{selectedEmail.subject}</p>
-                      </div>
-                      <div className="analytics-item">
-                        <label>From</label>
-                        <p>{selectedEmail.from}</p>
-                      </div>
-                      <div className="analytics-item">
-                        <label>To</label>
-                        <p>{donor.email}</p>
-                      </div>
-                      <div className="analytics-item">
                         <label>Date Sent</label>
                         <p>{formatDate(selectedEmail.date)}</p>
                       </div>
                       <div className="analytics-item">
-                        <label>Status</label>
-                        <span className={getStatusBadge(selectedEmail.status)}>
-                          {selectedEmail.status.charAt(0).toUpperCase() + selectedEmail.status.slice(1)}
+                        <label>Email Status</label>
+                        <span className={`engagement-status ${selectedEmail.openedCount && selectedEmail.openedCount > 0 ? 'opened' : 'not-opened'}`}>
+                          {selectedEmail.openedCount && selectedEmail.openedCount > 0 ? 'Opened' : 'Not Opened'}
                         </span>
                       </div>
                       {selectedEmail.templateId && (
@@ -879,6 +992,32 @@ const EmailEngagement: React.FC<EmailEngagementProps> = ({ donor, engagementReco
                           <p>{selectedEmail.templateId}</p>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Email Preview */}
+                  <div className="analytics-section">
+                    <h4>Email Preview</h4>
+                    <div className="email-preview-container">
+                      <div className="email-preview">
+                        <div className="email-header-line">
+                          <span className="email-label">To:</span>
+                          <span className="email-value">{donor.email}</span>
+                        </div>
+                        <div className="email-header-line">
+                          <span className="email-label">From:</span>
+                          <span className="email-value">{selectedEmail.from}</span>
+                        </div>
+                        <div className="email-header-line">
+                          <span className="email-label">Subject:</span>
+                          <span className="email-value">{selectedEmail.subject}</span>
+                        </div>
+                        <div className="email-body-line">
+                          <div className="email-body-content">
+                            <em>Email content preview not available</em>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -956,7 +1095,6 @@ const EmailEngagement: React.FC<EmailEngagementProps> = ({ donor, engagementReco
                               <th>Event</th>
                               <th>Date</th>
                               <th>Email</th>
-                              <th>IP Address</th>
                               <th>Details</th>
                             </tr>
                           </thead>
@@ -970,7 +1108,6 @@ const EmailEngagement: React.FC<EmailEngagementProps> = ({ donor, engagementReco
                                 </td>
                                 <td>{formatDate(event.date)}</td>
                                 <td>{event.email}</td>
-                                <td className="ip-address">{event.ip || 'N/A'}</td>
                                 <td className="event-details">
                                   {event.url && <div><strong>URL:</strong> {event.url}</div>}
                                   {event.reason && <div><strong>Reason:</strong> {event.reason}</div>}
