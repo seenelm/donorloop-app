@@ -15,7 +15,7 @@ import {
   faSave,
   faTrash
 } from '@fortawesome/free-solid-svg-icons';
-import { fetchDonorById, fetchGiftsByDonorId, type DonorData, type GiftData } from '../utils/supabaseClient';
+import { fetchDonorById, fetchGiftsByDonorId, saveEmailEngagement, type DonorData, type GiftData } from '../utils/supabaseClient';
 import axios from 'axios';
 import './styles/DonorProfile.css';
 
@@ -386,6 +386,19 @@ const EmailDonor: React.FC<EmailDonorProps> = ({ donor }) => {
       });
       
       if (response.data.success) {
+        // Extract email_id from Brevo response
+        const email_id = response.data.brevoResponse?.messageId || 
+                         response.data.brevoResponse?.messageIds?.[0] || 
+                         `manual-${Date.now()}`;
+        
+        // Save the email engagement record
+        const { success: engagementSaved, error: engagementError } = 
+          await saveEmailEngagement(email_id, donor.donorid);
+        
+        if (!engagementSaved) {
+          console.error('Failed to save email engagement:', engagementError);
+        }
+        
         setSendResult({
           success: true,
           message: `Email successfully sent to ${donor.firstname} ${donor.lastname}`

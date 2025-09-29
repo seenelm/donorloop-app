@@ -24,6 +24,7 @@ import PageTransitionWrapper from './components/transitions/PageTransitionWrappe
 
 // AuthenticatedLayout component that includes sidebar and other app elements
 const AuthenticatedLayout = () => {
+  const ENABLE_GIVING_ASSISTANT = import.meta.env.VITE_ENABLE_GIVING_ASSISTANT === 'true';
   return (
     <div className="app-container">
       <UnifiedHeader />
@@ -42,8 +43,12 @@ const AuthenticatedLayout = () => {
             <Route path="*" element={<Navigate to="/new-dashboard" replace />} />
           </Routes>
         </PageTransitionWrapper>
-        <ResizableChatSidebar />
-        <FloatingChatButton />
+        {ENABLE_GIVING_ASSISTANT && (
+          <>
+            <ResizableChatSidebar />
+            <FloatingChatButton />
+          </>
+        )}
       </div>
     </div>
   );

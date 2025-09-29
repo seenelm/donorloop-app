@@ -374,3 +374,33 @@ export async function fetchGiftsByDonorId(donorId: string): Promise<{
     };
   }
 }
+
+/**
+ * Save email engagement record
+ */
+export async function saveEmailEngagement(email_id: string, donorid: string): Promise<{
+  success: boolean;
+  error: string | null;
+}> {
+  try {
+    const { error } = await supabase
+      .from('engagement')
+      .insert([
+        { 
+          email_id, 
+          donorid,
+          // created_at will be automatically set by Supabase
+        }
+      ]);
+    
+    if (error) throw error;
+    
+    return { success: true, error: null };
+  } catch (error) {
+    console.error('Error saving email engagement:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
