@@ -383,202 +383,70 @@ export async function fetchGiftsByDonorId(donorId: string): Promise<{
   }
 }
 
-// ============================================================================
-// EMAIL ENGAGEMENT TRACKING FUNCTIONS
-// ============================================================================
-
 /**
- * Find donor by email address
+ * Save email engagement record
  */
-export async function findDonorByEmail(email: string): Promise<{
-  data: DonorData | null;
+export async function saveEmailEngagement(email_id: string, donorid: string): Promise<{
+  success: boolean;
   error: string | null;
 }> {
   try {
-    console.log(`Looking up donor by email: ${email}`);
-    
-    const { data, error } = await supabase
-      .from('donors')
-      .select()
-      .eq('email', email.toLowerCase())
-      .single();
-    
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-      throw error;
-    }
-    
-    if (!data) {
-      console.log(`No donor found for email: ${email}`);
-      return { data: null, error: null };
-    }
-    
-    console.log(`Found donor: ${data.firstname} ${data.lastname} (${data.donorid})`);
-    return { data: data as DonorData, error: null };
-  } catch (error) {
-    console.error(`Error finding donor by email ${email}:`, error);
-    return {
-      data: null,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-/**
- * Create engagement record when email is sent (with duplicate prevention)
- */
-export async function createEngagementRecord(emailId: string, donorId: string): Promise<{
-  data: EngagementData | null;
-  error: string | null;
-}> {
-  try {
-    console.log(`Creating engagement record: emailId=${emailId}, donorId=${donorId}`);
-    
-    // First check if this email_id already exists (prevent duplicates)
-    const existingCheck = await findEngagementByEmailId(emailId);
-    if (existingCheck.data) {
-      console.log(`Engagement record already exists for email: ${emailId}`);
-      return { data: existingCheck.data, error: null };
-    }
-    
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('engagement')
-      .insert([{
-        email_id: emailId,
-        donorid: donorId
-      }])
-      .select()
-      .single();
-    
-    if (error) {
-      // Handle potential race condition where record was created between check and insert
-      if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
-        console.log(`Duplicate engagement record detected for email: ${emailId}, fetching existing record`);
-        const existingRecord = await findEngagementByEmailId(emailId);
-        return { data: existingRecord.data, error: null };
-      }
-      throw error;
-    }
-    
-    console.log(`Engagement record created with ID: ${data.id}`);
-    return { data: data as EngagementData, error: null };
-  } catch (error) {
-    console.error(`Error creating engagement record:`, error);
-    return {
-      data: null,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-/**
- * Fetch all engagement records (with automatic sync like fetchGifts)
- */
-export async function fetchEngagementRecords(): Promise<{
-  data: (EngagementData & { donor?: DonorData })[] | null;
-  error: string | null;
-}> {
-  try {
-    console.log('Fetching engagement records...');
-    
-    // Note: Engagement records are fetched directly from database
-    // Future enhancement: Could trigger sync here if needed
-    
-    const { data, error } = await supabase
-      .from('engagement')
-      .select(`
-        *,
-        donors:donorid (
+      .insert([
+        { 
+          email_id, 
           donorid,
-          firstname,
-          lastname,
-          email
-        )
-      `)
-      .order('created_at', { ascending: false });
+          // created_at will be automatically set by Supabase
+        }
+      ]);
     
     if (error) throw error;
     
-    // Process the data to include donor information
-    const processedData = data?.map(engagement => ({
-      ...engagement,
-      donor: engagement.donors as DonorData,
-      donors: undefined // Remove the nested donors object
-    }));
-    
-    console.log(`Found ${processedData?.length || 0} engagement records`);
-    return { data: processedData as (EngagementData & { donor?: DonorData })[], error: null };
+    return { success: true, error: null };
   } catch (error) {
-    console.error('Error fetching engagement records:', error);
+    console.error('Error saving email engagement:', error);
     return {
-      data: null,
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
 
 /**
- * Fetch engagement records for a specific donor
- */
-export async function fetchEngagementByDonorId(donorId: string): Promise<{
-  data: EngagementData[] | null;
-  error: string | null;
-}> {
-  try {
-    console.log(`Fetching engagement records for donor: ${donorId}`);
-    
-    const { data, error } = await supabase
-      .from('engagement')
-      .select()
-      .eq('donorid', donorId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    
-    console.log(`Found ${data?.length || 0} engagement records for donor ${donorId}`);
-    return { data: data as EngagementData[], error: null };
-  } catch (error) {
-    console.error(`Error fetching engagement for donor ${donorId}:`, error);
-    return {
-      data: null,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-/**
- * Fetch engagement records for a specific donor by email address
- * This function first finds the donor by email, then fetches their engagement records
+ * Fetch engagement records by donor email
  */
 export async function fetchEngagementByDonorEmail(email: string): Promise<{
   data: EngagementData[] | null;
   error: string | null;
 }> {
   try {
-    console.log(`Fetching engagement records for donor email: ${email}`);
-    
     // First find the donor by email
-    const { data: donorData, error: donorError } = await findDonorByEmail(email);
+    const { data: donorData, error: donorError } = await supabase
+      .from('donors')
+      .select('donorid')
+      .eq('email', email)
+      .single();
     
-    if (donorError) {
-      throw new Error(donorError);
+    if (donorError || !donorData) {
+      return { data: [], error: null }; // Return empty array if donor not found
     }
     
-    if (!donorData) {
-      console.log(`No donor found for email: ${email}`);
-      return { data: [], error: null };
-    }
+    // Then fetch engagement records for this donor
+    const { data, error } = await supabase
+      .from('engagement')
+      .select(`
+        *,
+        donor:donors!engagement_donorid_fkey(*)
+      `)
+      .eq('donorid', donorData.donorid)
+      .order('created_at', { ascending: false });
     
-    // Now fetch engagement records for this donor
-    const { data: engagementData, error: engagementError } = await fetchEngagementByDonorId(donorData.donorid);
+    if (error) throw error;
     
-    if (engagementError) {
-      throw new Error(engagementError);
-    }
-    
-    console.log(`Found ${engagementData?.length || 0} engagement records for donor email ${email}`);
-    return { data: engagementData, error: null };
+    return { data: data || [], error: null };
   } catch (error) {
-    console.error(`Error fetching engagement for donor email ${email}:`, error);
+    console.error('Error fetching engagement by donor email:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -587,85 +455,29 @@ export async function fetchEngagementByDonorEmail(email: string): Promise<{
 }
 
 /**
- * Check if engagement record exists for email ID
+ * Fetch all engagement records with donor information
  */
-export async function findEngagementByEmailId(emailId: string): Promise<{
-  data: EngagementData | null;
+export async function fetchEngagementRecords(): Promise<{
+  data: EngagementData[] | null;
   error: string | null;
 }> {
   try {
     const { data, error } = await supabase
       .from('engagement')
-      .select()
-      .eq('email_id', emailId)
-      .single();
+      .select(`
+        *,
+        donor:donors!engagement_donorid_fkey(*)
+      `)
+      .order('created_at', { ascending: false });
     
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-      throw error;
-    }
+    if (error) throw error;
     
-    return { data: data as EngagementData | null, error: null };
+    return { data: data || [], error: null };
   } catch (error) {
-    console.error(`Error finding engagement by email ID ${emailId}:`, error);
+    console.error('Error fetching engagement records:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-/**
- * Verify engagement table setup and check for duplicates
- */
-export async function verifyEngagementTableSetup(): Promise<{
-  success: boolean;
-  hasDuplicates: boolean;
-  totalRecords: number;
-  uniqueEmails: number;
-  message: string;
-}> {
-  try {
-    console.log('Verifying engagement table setup...');
-    
-    // Get all engagement records
-    const { data: allRecords, error } = await supabase
-      .from('engagement')
-      .select('email_id');
-    
-    if (error) {
-      throw error;
-    }
-    
-    const totalRecords = allRecords?.length || 0;
-    const uniqueEmails = new Set(allRecords?.map(r => r.email_id) || []).size;
-    const hasDuplicates = totalRecords !== uniqueEmails;
-    
-    let message = `Engagement table: ${totalRecords} total records, ${uniqueEmails} unique emails`;
-    
-    if (hasDuplicates) {
-      message += ` (${totalRecords - uniqueEmails} duplicates found - consider adding unique constraint)`;
-    } else {
-      message += ' (no duplicates detected)';
-    }
-    
-    console.log(message);
-    
-    return {
-      success: true,
-      hasDuplicates,
-      totalRecords,
-      uniqueEmails,
-      message
-    };
-    
-  } catch (error) {
-    console.error('Error verifying engagement table setup:', error);
-    return {
-      success: false,
-      hasDuplicates: false,
-      totalRecords: 0,
-      uniqueEmails: 0,
-      message: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
