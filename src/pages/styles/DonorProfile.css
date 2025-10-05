@@ -1304,8 +1304,131 @@
   color: var(--text-secondary-color);
 }
 
-/* Responsive styles for engagement tab */
+/* Mobile responsive styles */
 @media (max-width: 768px) {
+  /* Container adjustments */
+  .donor-profile-container {
+    padding: 1rem;
+  }
+  
+  /* Header adjustments */
+  .donor-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .donor-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    margin-right: 0;
+    margin-bottom: 1rem;
+    align-self: center;
+  }
+  
+  .donor-header-info {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .donor-header-info h1 {
+    font-size: 1.5rem;
+  }
+  
+  .donor-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .donor-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .edit-donor-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Tab navigation - horizontal scrolling */
+  .donor-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+  }
+  
+  .donor-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    min-width: max-content;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  /* Overview tab mobile layout */
+  .overview-tab {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  /* Card adjustments */
+  .donor-details-card, 
+  .donor-summary-card, 
+  .gifts-list-card, 
+  .engagement-summary-card {
+    padding: 1rem;
+  }
+  
+  .donor-details-card h2, 
+  .donor-summary-card h2, 
+  .gifts-list-card h2, 
+  .engagement-summary-card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* Engagement stats mobile layout */
+  .engagement-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .engagement-stats .stat-item {
+    padding: 0.75rem;
+  }
+  
+  .engagement-stats .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  .engagement-stats .stat-label {
+    font-size: 0.8rem;
+  }
+  
+  /* Gifts table mobile */
+  .gifts-table {
+    font-size: 0.85rem;
+  }
+  
+  .gifts-table th,
+  .gifts-table td {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  /* Responsive styles for engagement tab */
   .engagement-table {
     display: block;
     overflow-x: auto;
@@ -1379,5 +1502,66 @@
   
   .email-analytics-modal .metric-value {
     font-size: 1.5rem;
+  }
+}
+
+/* Extra small mobile devices (480px and below) */
+@media (max-width: 480px) {
+  .donor-profile-container {
+    padding: 0.75rem;
+  }
+  
+  .donor-header {
+    padding-bottom: 1rem;
+  }
+  
+  .donor-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+  }
+  
+  .donor-header-info h1 {
+    font-size: 1.25rem;
+  }
+  
+  .donor-meta {
+    font-size: 0.85rem;
+  }
+  
+  .tab-button {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .engagement-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .engagement-stats .stat-item {
+    padding: 0.6rem;
+  }
+  
+  .engagement-stats .stat-value {
+    font-size: 1.1rem;
+  }
+  
+  .engagement-stats .stat-label {
+    font-size: 0.75rem;
+  }
+  
+  .donor-details-card, 
+  .donor-summary-card, 
+  .gifts-list-card, 
+  .engagement-summary-card {
+    padding: 0.75rem;
+  }
+  
+  .donor-details-card h2, 
+  .donor-summary-card h2, 
+  .gifts-list-card h2, 
+  .engagement-summary-card h2 {
+    font-size: 1rem;
   }
 }

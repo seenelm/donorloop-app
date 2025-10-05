@@ -22,6 +22,9 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
       setIsClosing(false);
       setIsAnimating(true);
       
+      // Prevent body scrolling on mobile
+      document.body.classList.add('modal-open');
+      
       // Allow backdrop clicks after opening animation completes
       const timer = setTimeout(() => {
         setIsAnimating(false);
@@ -39,6 +42,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
         setIsClosing(false);
         setShouldRender(false);
         setIsAnimating(false);
+        // Remove body scroll lock when modal closes
+        document.body.classList.remove('modal-open');
       }, 300); // Match the closing animation duration
       
       return () => clearTimeout(timer);

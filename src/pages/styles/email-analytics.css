@@ -2461,16 +2461,84 @@
     font-size: 2rem;
   }
   
+  /* Mobile Timeline Fixes */
   .activity-timeline .timeline-container {
-    padding: 1rem;
+    padding: 1rem 0.5rem;
   }
   
   .activity-timeline .timeline-container::before {
-    left: 1.5rem;
+    left: 1rem;
+    width: 2px;
+  }
+  
+  .activity-timeline .timeline-item {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 0 0 0 1.5rem;
+  }
+  
+  .activity-timeline .timeline-marker {
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+  }
+  
+  .activity-timeline .timeline-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0.5rem;
+    font-size: 0.8rem;
   }
   
   .activity-timeline .timeline-content {
-    padding: 0.75rem;
+    padding: 1rem;
+    margin-left: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .timeline-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .timeline-event {
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  
+  .timeline-time {
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+  
+  .timeline-details {
+    gap: 0.5rem;
+  }
+  
+  .timeline-subject {
+    font-size: 0.9rem;
+    line-height: 1.3;
+    word-wrap: break-word;
+  }
+  
+  .timeline-recipient {
+    font-size: 0.8rem;
+    word-wrap: break-word;
+  }
+  
+  .timeline-donor {
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    font-weight: 500;
+  }
+  
+  .timeline-reason {
+    font-size: 0.75rem;
+    line-height: 1.2;
   }
   
   .campaign-item,
