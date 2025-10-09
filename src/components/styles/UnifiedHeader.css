@@ -1,14 +1,14 @@
 /* === Unified Header Container === */
 .unified-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2147483647 !important;
 
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1.5rem;
-  background-color: var(--background-color);
+  background-color: var(--background-color) !important;
   border-bottom: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
@@ -163,4 +163,316 @@
   font-size: 0.75rem;
   color: #6b7280;
   line-height: 1.2;
+}
+
+/* === MOBILE RESPONSIVE STYLES === */
+
+/* Mobile hamburger menu button */
+.mobile-menu-button {
+  display: none;
+  background: none !important;
+  border: none !important;
+  color: #6b7280;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  position: relative !important;
+  z-index: 2147483647 !important;
+}
+
+.mobile-menu-button:hover {
+  color: var(--primary-color);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Mobile navigation overlay */
+.mobile-nav-overlay {
+  display: none;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  z-index: 2147483646 !important;
+}
+
+.mobile-nav-overlay.open {
+  display: block;
+}
+
+/* Mobile navigation menu */
+.mobile-nav-menu {
+  position: fixed !important;
+  top: 0 !important;
+  left: -100%;
+  width: 280px;
+  height: 100vh !important;
+  background-color: var(--background-color) !important;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: left 0.3s ease;
+  z-index: 2147483647 !important;
+  overflow-y: auto;
+}
+
+.mobile-nav-menu.open {
+  left: 0;
+}
+
+/* Mobile menu header */
+.mobile-nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: var(--surface-color, #f9fafb);
+}
+
+.mobile-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mobile-nav-logo {
+  height: 28px;
+  width: 28px;
+}
+
+.mobile-nav-brand {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.mobile-close-button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.mobile-close-button:hover {
+  color: var(--primary-color);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile navigation items */
+.mobile-nav-items {
+  padding: 1rem 0;
+}
+
+.mobile-nav-button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.mobile-nav-button:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  color: var(--primary-color);
+}
+
+.mobile-nav-button.active {
+  background-color: rgba(139, 92, 246, 0.05);
+  color: var(--primary-color);
+  border-left-color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Mobile user profile section */
+.mobile-user-profile {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: var(--surface-color, #f9fafb);
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.mobile-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: #FFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.mobile-user-details {
+  flex: 1;
+}
+
+.mobile-user-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.2;
+}
+
+.mobile-user-role {
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.mobile-user-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mobile-action-button {
+  flex: 1;
+  background: none;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.mobile-action-button:hover {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  background-color: rgba(139, 92, 246, 0.02);
+}
+
+/* === RESPONSIVE BREAKPOINTS === */
+
+/* Large tablets and small desktops (1024px and down) */
+@media (max-width: 1024px) {
+  .header-section.center {
+    margin: 0 1rem;
+  }
+  
+  .nav-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .header-search-input {
+    width: 160px;
+  }
+}
+
+/* Tablets (768px and down) */
+@media (max-width: 768px) {
+  .unified-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .header-section.center {
+    margin: 0 0.5rem;
+  }
+  
+  .nav-button {
+    padding: 0.75rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .header-search-input {
+    width: 140px;
+  }
+  
+  .header-title {
+    font-size: 1.1rem;
+  }
+  
+  .user-profile-info {
+    display: none;
+  }
+}
+
+/* Mobile phones (640px and down) */
+@media (max-width: 640px) {
+  .unified-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Hide desktop navigation */
+  .header-section.center {
+    display: none;
+  }
+  
+  /* Hide search and some icons on mobile */
+  .header-search {
+    display: none;
+  }
+  
+  .user-profile-section {
+    display: none;
+  }
+  
+  /* Show mobile menu button */
+  .mobile-menu-button {
+    display: block;
+  }
+  
+  /* Adjust left section for mobile */
+  .header-section.left {
+    flex: 1;
+  }
+  
+  .header-title {
+    font-size: 1rem;
+  }
+  
+  .header-logo {
+    height: 28px;
+    width: 28px;
+  }
+  
+  /* Keep only essential right section items */
+  .header-section.right {
+    gap: 0.5rem;
+  }
+}
+
+/* Extra small phones (480px and down) */
+@media (max-width: 480px) {
+  .unified-header {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .header-title {
+    display: none;
+  }
+  
+  .header-section.left {
+    gap: 0;
+  }
 }

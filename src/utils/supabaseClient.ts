@@ -224,6 +224,14 @@ export interface GiftData {
   donor?: string;
 }
 
+// Engagement data interface
+export interface EngagementData {
+  id: number;
+  created_at: string;
+  email_id: string;
+  donorid: string;
+}
+
 /**
  * Verify database connection and table existence
  */
@@ -400,6 +408,75 @@ export async function saveEmailEngagement(email_id: string, donorid: string): Pr
     console.error('Error saving email engagement:', error);
     return {
       success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Fetch engagement records by donor email
+ */
+export async function fetchEngagementByDonorEmail(email: string): Promise<{
+  data: EngagementData[] | null;
+  error: string | null;
+}> {
+  try {
+    // First find the donor by email
+    const { data: donorData, error: donorError } = await supabase
+      .from('donors')
+      .select('donorid')
+      .eq('email', email)
+      .single();
+    
+    if (donorError || !donorData) {
+      return { data: [], error: null }; // Return empty array if donor not found
+    }
+    
+    // Then fetch engagement records for this donor
+    const { data, error } = await supabase
+      .from('engagement')
+      .select(`
+        *,
+        donor:donors!engagement_donorid_fkey(*)
+      `)
+      .eq('donorid', donorData.donorid)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return { data: data || [], error: null };
+  } catch (error) {
+    console.error('Error fetching engagement by donor email:', error);
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Fetch all engagement records with donor information
+ */
+export async function fetchEngagementRecords(): Promise<{
+  data: EngagementData[] | null;
+  error: string | null;
+}> {
+  try {
+    const { data, error } = await supabase
+      .from('engagement')
+      .select(`
+        *,
+        donor:donors!engagement_donorid_fkey(*)
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return { data: data || [], error: null };
+  } catch (error) {
+    console.error('Error fetching engagement records:', error);
+    return {
+      data: null,
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }

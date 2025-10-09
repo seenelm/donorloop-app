@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard';
 import FundraisingManager from './pages/FundraisingManager';
 import DonorManager from './pages/DonorManager';
 import DonorProfile from './pages/DonorProfile';
+import EmailAnalytics from './pages/EmailAnalytics';
 import ResizableChatSidebar from './components/chat/ResizableChatSidebar';
 import FloatingChatButton from './components/chat/FloatingChatButton';
 import { ChatSidebarProvider } from './context/ChatSidebarContext';
@@ -17,8 +18,6 @@ import DataLibrary from './pages/DataLibrary';
 import './App.css';
 import './pages/styles/Dashboard.css';
 import Metrics from './pages/Metrics';
-import NewDashboard from './pages/NewDashBoard';
-import NewDashboard2 from './pages/NewDashboard2';
 import UnifiedHeader from './components/navigation/UnifiedHeader';
 import PageTransitionWrapper from './components/transitions/PageTransitionWrapper';
 
@@ -38,9 +37,8 @@ const AuthenticatedLayout = () => {
             <Route path="/data-library" element={<DataLibrary />} />
             <Route path="/auth-admin" element={<AuthAdmin />} />
             <Route path="/metrics" element={<Metrics />} />
-            <Route path="/new-dashboard" element={<NewDashboard />} />
-            <Route path="/new-dashboard2" element={<NewDashboard2 />} />
-            <Route path="*" element={<Navigate to="/new-dashboard" replace />} />
+            <Route path="/email-analytics" element={<EmailAnalytics />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </PageTransitionWrapper>
         {ENABLE_GIVING_ASSISTANT && (

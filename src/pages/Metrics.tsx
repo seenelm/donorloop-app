@@ -1,14 +1,51 @@
+// ============================================================================
+// METRICS PAGE - COMPREHENSIVE DONOR ANALYTICS DASHBOARD
+// ============================================================================
+//  Comprehensive view of donor metrics including:
+// - Current year metrics (new donors, recurring donors, etc.)
+// - Donor classifications (major, medium, normal donors)
+// - Retention & churn analysis
+// - Lifetime value calculations
+// - Donation tier breakdowns (YTD and All-Time)
+// - Interactive modals with detailed donor lists
+// ============================================================================
+
+// React and Navigation Imports
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
+
+// FontAwesome Icons
 import {
-  faCalendarAlt, faChartLine, faPercent, faArrowUp, faArrowDown, faUserPlus,
-  faArrowUpRightDots, faArrowTrendUp, faArrowTrendDown, faUserSlash,
-  faUser, faUserCheck, faUserFriends, faUserEdit, faUserTie, faStar, faGem,
-  faPiggyBank, faGift, faHandHoldingHeart, faDollarSign, faChartPie, faWrench
+  faArrowUp,
+  faArrowDown,
+  faArrowTrendUp,
+  faArrowTrendDown,
+  faUserPlus,
+  faCalendarAlt,
+  faChartLine,
+  faPercent,
+  faUserSlash,
+  faUserCheck,
+  faArrowUpRightDots,
+  faUserTie,
+  faUserFriends,
+  faUser,
+  faUserEdit,
+  faChartPie,
+  faDollarSign,
+  faStar,
+  faGift,
+  faHandHoldingHeart,
+  faPiggyBank,
+  faGem
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+
+// Component Imports
 import Controls from '../components/controls/Controls';
 import Modal from '../components/popup/modal';
+
+// Styles and Data Hooks
 import './styles/metrics.css';
 import { 
   useMetrics,
@@ -20,39 +57,122 @@ import {
   type ContributionListItem
 } from '../components/hooks/useMetrics';
 
-// --- Helper functions ---
-const donorInitials = (donor?: any) => donor ? `${donor.firstname?.[0] || ''}${donor.lastname?.[0] || ''}` : '—';
-const donorFullName = (donor?: any) => donor ? `${donor.firstname || ''} ${donor.lastname || ''}`.trim() : '';
-const formatDate = (date?: string) => {
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Extracts donor initials for avatar display
+ * @param donor - Donor object with firstname and lastname
+ * @returns Formatted initials or fallback character
+ */
+const donorInitials = (donor?: any): string => {
+  return donor ? `${donor.firstname?.[0] || ''}${donor.lastname?.[0] || ''}` : '—';
+};
+
+/**
+ * Formats donor full name
+ * @param donor - Donor object with firstname and lastname
+ * @returns Formatted full name
+ */
+const donorFullName = (donor?: any): string => {
+  return donor ? `${donor.firstname || ''} ${donor.lastname || ''}`.trim() : '';
+};
+
+/**
+ * Formats date string for display
+ * @param date - ISO date string
+ * @returns Formatted date string
+ */
+const formatDate = (date?: string): string => {
   if (!date) return '';
   const d = new Date(date);
   return new Date(d.getTime() + d.getTimezoneOffset() * 60000).toLocaleDateString();
 };
-const formatAmount = (amount?: number) => {
+
+/**
+ * Formats monetary amounts as currency
+ * @param amount - Numeric amount
+ * @returns Formatted currency string
+ */
+const formatAmount = (amount?: number): string => {
   if (amount === undefined) return '';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 };
 
-const Metrics: React.FC = () => {
+// ============================================================================
+// MAIN METRICS COMPONENT
+// ============================================================================
 
+/**
+ * Metrics component - Comprehensive donor analytics dashboard
+ * Displays various donor metrics with filtering, search, and modal functionality
+ */
+const Metrics: React.FC = () => {
+  // ============================================================================
+  // HOOKS AND DATA
+  // ============================================================================
+  
   const data = useMetrics();
   const navigate = useNavigate();
-  const goToDonor = (donorId?: string) => {
-    if (!donorId) return;
-    navigate(`/donor-profile/${donorId}`);
-  };
+  const currentYear = new Date().getFullYear();
+  const { metrics } = data;
 
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+  
   const [activeFilter, setActiveFilter] = useState('All Metrics');
   const [searchTerm, setSearchTerm] = useState('');
   const [donationTypeFilter, setDonationTypeFilter] = useState<'monthly' | 'one-time'>('monthly');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContentId, setModalContentId] = useState<string | null>(null);
 
-  const openModal = (metricId: string) => { setModalContentId(metricId); setIsModalOpen(true); };
-  const closeModal = () => { setIsModalOpen(false); setModalContentId(null); };
+  // ============================================================================
+  // UTILITY FUNCTIONS
+  // ============================================================================
+  
+  /**
+   * Navigates to donor profile page
+   * @param donorId - ID of the donor to view
+   */
+  const goToDonor = (donorId?: string) => {
+    if (!donorId) return;
+    navigate(`/donor-profile/${donorId}`);
+  };
 
-  // Custom MetricCard component that matches dashboard styling
-  const MetricCard: React.FC<any> = ({ title, value, icon, onClick, subtitle }) => (
+  /**
+   * Opens modal with specific metric content
+   * @param metricId - ID of the metric to display in modal
+   */
+  const openModal = (metricId: string) => {
+    setModalContentId(metricId);
+    setIsModalOpen(true);
+  };
+
+  /**
+   * Closes the modal and resets content
+   */
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalContentId(null);
+  };
+
+  // ============================================================================
+  // COMPONENTS
+  // ============================================================================
+  
+  /**
+   * MetricCard component for displaying individual metrics
+   * Matches dashboard styling with glassmorphism effects
+   */
+  const MetricCard: React.FC<{
+    title: string;
+    value: string | number;
+    icon: any;
+    onClick?: () => void;
+    subtitle?: string;
+  }> = ({ title, value, icon, onClick, subtitle }) => (
     <div 
       className={`stat-card ${onClick ? 'stat-card-clickable' : ''}`}
       onClick={onClick}
@@ -70,191 +190,215 @@ const Metrics: React.FC = () => {
     </div>
   );
 
-  if (data.isLoading) return <div className="loading-state">Loading metrics...</div>;
-  if (data.error) return <div className="error-state">Error loading metrics: {data.error}</div>;
+  // ============================================================================
+  // LOADING AND ERROR STATES
+  // ============================================================================
+  
+  if (data.isLoading) {
+    return <div className="loading-state">Loading metrics...</div>;
+  }
+  
+  if (data.error) {
+    return <div className="error-state">Error loading metrics: {data.error}</div>;
+  }
 
-  const currentYear = new Date().getFullYear();
-  const { metrics } = data;
-
-  // --- 3. METRIC DEFINITIONS (COMPLETE) ---
+  // ============================================================================
+  // METRIC DEFINITIONS
+  // ============================================================================
+  // Comprehensive list of all available metrics organized by category
+  // Each metric includes: id, title, value, icon, variant, categories, etc.
   const metricDefinitions = [
-    // Main Metrics
+    // ========================================================================
+    // OVERVIEW METRICS
+    // ========================================================================
     {
-    id: 'totalDonationsAllTime',
-    title: 'Total Donations (All-Time)',
-    value: formatAmount(data.totalDonationsAllTime),
-    icon: faPiggyBank, 
-    variant: 'primary',
-    subtitle: 'Accumulated from all gifts',
-    donationType: ['monthly', 'one-time'],
-    categories: ['All-Time Classifications','Lifetime Value'],
-    },
-    { 
-    id: 'newDonors', 
-    title: 'New Donors (Last 30 Days)', 
-    value: metrics.newDonorsLastMonth, 
-    icon: faUserPlus, 
-    variant: 'primary', onClick: () => openModal('newDonors'), 
-    subtitle: 'Click to view list',
-    categories: ['Current Year Metrics'], 
-    donationType: ['monthly', 'one-time'] 
+      id: 'totalDonationsAllTime',
+      title: 'Total Donations (All-Time)',
+      value: formatAmount(data.totalDonationsAllTime),
+      icon: faPiggyBank, 
+      variant: 'primary',
+      subtitle: 'Accumulated from all gifts',
+      donationType: ['monthly', 'one-time'],
+      categories: ['All-Time Classifications','Lifetime Value'],
     },
     {
-    id: 'recurringDonors',
-    title: 'Recurring Donors (Last 30 Days)',
-    value: metrics.recurringDonorsLastMonth,
-    icon: faCalendarAlt,
-    variant: 'success',
-    onClick: () => openModal('recurringDonors'),
-    subtitle: 'Click to view IDs',
-    categories: ['Current Year Metrics'],
-    donationType: ['monthly', 'one-time']
-  },
-  {
-    id: 'medianDonation',
-    title: 'Median Donation (Last 30 Days)',
-    value: formatAmount(metrics.medianDonation),
-    icon: faChartLine,
-    variant: 'success',
-    onClick: () => openModal('medianDonation'),
-    subtitle: 'Click to view details',
-    categories: ['Current Year Metrics'],
-    donationType: ['monthly', 'one-time']
-  },
-  {
-    id: 'wma',
-    title: '30-Day WMA Donations',
-    value: formatAmount(metrics.weightedMovingAvg),
-    icon: faPercent,
-    variant: 'dark',
-    onClick: () => openModal('wma'),
-    subtitle: 'Click to view breakdown',
-    categories: ['Current Year Metrics'],
-    donationType: ['monthly', 'one-time']
-  },
+      id: 'newDonors',
+      title: 'New Donors (Last 30 Days)',
+      value: metrics.newDonorsLastMonth,
+      icon: faUserPlus,
+      variant: 'primary',
+      onClick: () => openModal('newDonors'),
+      subtitle: 'Click to view list',
+      categories: ['Current Year Metrics'],
+      donationType: ['monthly', 'one-time']
+    },
+      {
+      id: 'recurringDonors',
+      title: 'Recurring Donors (Last 30 Days)',
+      value: metrics.recurringDonorsLastMonth,
+      icon: faCalendarAlt,
+      variant: 'success',
+      onClick: () => openModal('recurringDonors'),
+      subtitle: 'Click to view IDs',
+      categories: ['Current Year Metrics'],
+      donationType: ['monthly', 'one-time']
+    },
+    {
+      id: 'medianDonation',
+      title: 'Median Donation (Last 30 Days)',
+      value: formatAmount(metrics.medianDonation),
+      icon: faChartLine,
+      variant: 'success',
+      onClick: () => openModal('medianDonation'),
+      subtitle: 'Click to view details',
+      categories: ['Current Year Metrics'],
+      donationType: ['monthly', 'one-time']
+    },
+    {
+      id: 'wma',
+      title: '30-Day WMA Donations',
+      value: formatAmount(metrics.weightedMovingAvg),
+      icon: faPercent,
+      variant: 'dark',
+      onClick: () => openModal('wma'),
+      subtitle: 'Click to view breakdown',
+      categories: ['Current Year Metrics'],
+      donationType: ['monthly', 'one-time']
+    },
 
-  {
-    id: 'recAboveMedian',
-    title: '> Median & Recurring (1mo)',
-    value: metrics.recAboveMedian1mo,
-    icon: faArrowUp,
-    variant: 'success',
-    onClick: () => openModal('recAboveMedian'),
-    subtitle: 'Click to view',
-    categories: ['Median Analysis'],
-    donationType: ['monthly']
-  },
-  {
-    id: 'recBelowMedian',
-    title: '≤ Median & Recurring (1mo)',
-    value: metrics.recBelowMedian1mo,
-    icon: faArrowDown,
-    variant: 'warning',
-    onClick: () => openModal('recBelowMedian'),
-    subtitle: 'Click to view',
-    categories: ['Median Analysis'],
-    donationType: ['monthly']
-  },
-  {
-    id: 'nonRecAboveMedian',
-    title: '> Median & Non-Recurring (1mo)',
-    value: metrics.nonRecAboveMedian1mo,
-    icon: faArrowUp,
-    variant: 'success',
-    onClick: () => openModal('nonRecAboveMedian'),
-    subtitle: 'Click to view',
-    categories: ['Median Analysis'],
-    donationType: ['one-time']
-  },
-  {
-    id: 'nonRecBelowMedian',
-    title: '≤ Median & Non-Recurring (1mo)',
-    value: metrics.nonRecBelowMedian1mo,
-    icon: faArrowDown,
-    variant: 'warning',
-    onClick: () => openModal('nonRecBelowMedian'),
-    subtitle: 'Click to view',
-    categories: ['Median Analysis'],
-    donationType: ['one-time']
-  },
-  {
-    id: 'recAboveWMA',
-    title: '> WMA & Recurring (1mo)',
-    value: metrics.recAboveWMA1mo,
-    icon: faArrowTrendUp,
-    variant: 'success',
-    onClick: () => openModal('recAboveWMA'),
-    subtitle: 'Click to view',
-    categories: ['WMA Analysis'],
-    donationType: ['monthly']
-  },
-  {
-    id: 'recBelowWMA',
-    title: '≤ WMA & Recurring (1mo)',
-    value: metrics.recBelowWMA1mo,
-    icon: faArrowTrendDown,
-    variant: 'warning',
-    onClick: () => openModal('recBelowWMA'),
-    subtitle: 'Click to view',
-    categories: ['WMA Analysis'],
-    donationType: ['monthly']
-  },
-  {
-    id: 'nonRecAboveWMA',
-    title: '> WMA & Non-Recurring (1mo)',
-    value: metrics.nonRecAboveWMA1mo,
-    icon: faArrowTrendUp,
-    variant: 'success',
-    onClick: () => openModal('nonRecAboveWMA'),
-    subtitle: 'Click to view',
-    categories: ['WMA Analysis'],
-    donationType: ['one-time']
-  },
-  {
-    id: 'nonRecBelowWMA',
-    title: '≤ WMA & Non-Recurring (1mo)',
-    value: metrics.nonRecBelowWMA1mo,
-    icon: faArrowTrendDown,
-    variant: 'warning',
-    onClick: () => openModal('nonRecBelowWMA'),
-    subtitle: 'Click to view',
-    categories: ['WMA Analysis'],
-    donationType: ['one-time']
-  },
-  {
-    id: 'recurringRatio',
-    title: 'Recurring Value Ratio',
-    value: metrics.recurringDonationRatio !== undefined
-    ? `${metrics.recurringDonationRatio.toFixed(1)}%`
-    : 'N/A',
-    icon: faPercent,
-    subtitle: 'Recurring share of total donation value',
-    categories: ['Current Year Metrics', 'Retention & Churn'],
-    donationType: ['monthly']
-  },
-  {
-    id: 'churnedLarge',
-    title: 'Churned Large Donors',
-    value: metrics.churnedLargeDonors,
-    icon: faUserSlash,
-    variant: 'warning',
-    onClick: () => openModal('churnedLarge'),
-    subtitle: 'Click to view list',
-    categories: ['Retention & Churn', 'Top Donor Metrics'],
-    donationType: ['monthly', 'one-time']
-  },
-  // Top Donors
-  {
-    id: 'churnedMonthly',
-    title: 'Monthly Donors Who Churned',
-    value: metrics.monthlyDonorsWhoChurned,
-    icon: faUserSlash,
-    variant: 'warning',
-    onClick: () => openModal('churnedMonthly'),
-    subtitle: 'Click to view list',
-    categories: ['Retention & Churn'],
-    donationType: ['monthly']
-  },
+    // ========================================================================
+    // MEDIAN ANALYSIS METRICS
+    // ========================================================================
+
+    {
+      id: 'recAboveMedian',
+      title: '> Median & Recurring (1mo)',
+      value: metrics.recAboveMedian1mo,
+      icon: faArrowUp,
+      variant: 'success',
+      onClick: () => openModal('recAboveMedian'),
+      subtitle: 'Click to view',
+      categories: ['Median Analysis'],
+      donationType: ['monthly']
+    },
+    {
+      id: 'recBelowMedian',
+      title: '≤ Median & Recurring (1mo)',
+      value: metrics.recBelowMedian1mo,
+      icon: faArrowDown,
+      variant: 'warning',
+      onClick: () => openModal('recBelowMedian'),
+      subtitle: 'Click to view',
+      categories: ['Median Analysis'],
+      donationType: ['monthly']
+    },
+    {
+      id: 'nonRecAboveMedian',
+      title: '> Median & Non-Recurring (1mo)',
+      value: metrics.nonRecAboveMedian1mo,
+      icon: faArrowUp,
+      variant: 'success',
+      onClick: () => openModal('nonRecAboveMedian'),
+      subtitle: 'Click to view',
+      categories: ['Median Analysis'],
+      donationType: ['one-time']
+    },
+    {
+      id: 'nonRecBelowMedian',
+      title: '≤ Median & Non-Recurring (1mo)',
+      value: metrics.nonRecBelowMedian1mo,
+      icon: faArrowDown,
+      variant: 'warning',
+      onClick: () => openModal('nonRecBelowMedian'),
+      subtitle: 'Click to view',
+      categories: ['Median Analysis'],
+      donationType: ['one-time']
+    },
+
+    // ========================================================================
+    // WMA ANALYSIS METRICS
+    // ========================================================================
+    {
+      id: 'recAboveWMA',
+      title: '> WMA & Recurring (1mo)',
+      value: metrics.recAboveWMA1mo,
+      icon: faArrowTrendUp,
+      variant: 'success',
+      onClick: () => openModal('recAboveWMA'),
+      subtitle: 'Click to view',
+      categories: ['WMA Analysis'],
+      donationType: ['monthly']
+    },
+    {
+      id: 'recBelowWMA',
+      title: '≤ WMA & Recurring (1mo)',
+      value: metrics.recBelowWMA1mo,
+      icon: faArrowTrendDown,
+      variant: 'warning',
+      onClick: () => openModal('recBelowWMA'),
+      subtitle: 'Click to view',
+      categories: ['WMA Analysis'],
+      donationType: ['monthly']
+    },
+    {
+      id: 'nonRecAboveWMA',
+      title: '> WMA & Non-Recurring (1mo)',
+      value: metrics.nonRecAboveWMA1mo,
+      icon: faArrowTrendUp,
+      variant: 'success',
+      onClick: () => openModal('nonRecAboveWMA'),
+      subtitle: 'Click to view',
+      categories: ['WMA Analysis'],
+      donationType: ['one-time']
+    },
+    {
+      id: 'nonRecBelowWMA',
+      title: '≤ WMA & Non-Recurring (1mo)',
+      value: metrics.nonRecBelowWMA1mo,
+      icon: faArrowTrendDown,
+      variant: 'warning',
+      onClick: () => openModal('nonRecBelowWMA'),
+      subtitle: 'Click to view',
+      categories: ['WMA Analysis'],
+      donationType: ['one-time']
+    },
+
+    // ========================================================================
+    // RETENTION & CHURN METRICS
+    // ========================================================================
+    {
+      id: 'recurringRatio',
+      title: 'Recurring Value Ratio',
+      value: metrics.recurringDonationRatio !== undefined
+        ? `${metrics.recurringDonationRatio.toFixed(1)}%`
+        : 'N/A',
+      icon: faPercent,
+      subtitle: 'Recurring share of total donation value',
+      categories: ['Current Year Metrics', 'Retention & Churn'],
+      donationType: ['monthly']
+    },
+    {
+      id: 'churnedLarge',
+      title: 'Churned Large Donors',
+      value: metrics.churnedLargeDonors,
+      icon: faUserSlash,
+      variant: 'warning',
+      onClick: () => openModal('churnedLarge'),
+      subtitle: 'Click to view list',
+      categories: ['Retention & Churn', 'Top Donor Metrics'],
+      donationType: ['monthly', 'one-time']
+    },
+    {
+      id: 'churnedMonthly',
+      title: 'Monthly Donors Who Churned',
+      value: metrics.monthlyDonorsWhoChurned,
+      icon: faUserSlash,
+      variant: 'warning',
+      onClick: () => openModal('churnedMonthly'),
+      subtitle: 'Click to view list',
+      categories: ['Retention & Churn'],
+      donationType: ['monthly']
+    },
   {
     id: 'top20Recurring',
     title: 'Top 20 Recurring Donors (YTD)',
@@ -652,20 +796,16 @@ const Metrics: React.FC = () => {
     categories: ['Lifetime Value'],
     donationType: ['one-time']
   },
-  {
-    id: 'activeDonors',
-    title: 'Active Donors (Last 3 Months)',
-    value: '---',
-    icon: faWrench,
-    variant: 'dark',
-    subtitle: 'CURRENTLY BEING FIXED',
-    onClick: () => {},
-    categories: ['Top Donor Metrics', 'Current Year Metrics'],
-    donationType: ['monthly', 'one-time']
-  },
   // Median & WMA Analysis
       ];
 
+  // ============================================================================
+  // FILTERING LOGIC
+  // ============================================================================
+  
+  /**
+   * Filters metrics based on donation type, active filter category, and search term
+   */
   const filteredMetrics = metricDefinitions
     .filter(metric => metric.donationType.includes(donationTypeFilter))
     .filter(metric => activeFilter === 'All Metrics' || metric.categories.includes(activeFilter))
@@ -675,20 +815,34 @@ const Metrics: React.FC = () => {
       return metric.title.toLowerCase().includes(lowerCaseSearchTerm);
     });
 
+  // ============================================================================
+  // RENDER COMPONENT
+  // ============================================================================
+  
   return (
     <div className="content-body metrics-container">
+      {/* Page Header */}
       <div className="manager-header">
         <h2>Metrics</h2>
         <p className="manager-description">Overview of donor categories and key counts.</p>
       </div>
 
+      {/* Controls Section */}
       <Controls
         filterOptions={{
           defaultOption: 'All Metrics',
           options: [
-            'All Metrics', 'Top Donor Metrics', 'Current Year Metrics', 
-            'Donor Classifications', 
-            'Retention & Churn', 'Lifetime Value', 'Donation Tiers (YTD)',
+            'All Metrics',
+            'Top Donor Metrics',
+            'Current Year Metrics',
+            'Donor Classifications',
+            'All-Time Classifications',
+            'Retention & Churn',
+            'Lifetime Value',
+            'Donation Tiers (YTD)',
+            'Donation Tiers (All-Time)',
+            'Median Analysis',
+            'WMA Analysis'
           ]
         }}
         onFilterChange={setActiveFilter}
@@ -700,44 +854,80 @@ const Metrics: React.FC = () => {
         onDonationTypeChange={setDonationTypeFilter}
       />
 
+      {/* Metrics Display Area */}
       <div className="metrics-display-area">
+        {/* Donor Classifications Special Layout */}
         {activeFilter === 'Donor Classifications' || activeFilter === 'All-Time Classifications' ? (
           <div className="grouped-grid-view">
-            {(['Major', 'Medium', 'Normal']).map(tier => {
+            {['Major', 'Medium', 'Normal'].map(tier => {
               const allTierCards = filteredMetrics.filter(m => m.title.includes(tier));
               if (allTierCards.length === 0) return null;
+              
               const oneYearCards = allTierCards.filter(m => !m.title.includes('All-Time'));
               const allTimeCards = allTierCards.filter(m => m.title.includes('All-Time'));
+              
               return (
                 <div key={tier} className="classification-tier">
                   <h3 className="classification-header">{tier} Donors</h3>
-                  {oneYearCards.length > 0 && (<><h4 className="classification-subheader">1 Year</h4><div className="stat-cards-grid">{oneYearCards.map(metric => (<MetricCard key={metric.id} {...metric as any} />))}</div></>)}
-                  {allTimeCards.length > 0 && (<><h4 className="classification-subheader">All-Time</h4><div className="stat-cards-grid">{allTimeCards.map(metric => (<MetricCard key={metric.id} {...metric as any} />))}</div></>)}
+                  
+                  {oneYearCards.length > 0 && (
+                    <>
+                      <h4 className="classification-subheader">1 Year</h4>
+                      <div className="stat-cards-grid">
+                        {oneYearCards.map(metric => (
+                          <MetricCard key={metric.id} {...metric as any} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  
+                  {allTimeCards.length > 0 && (
+                    <>
+                      <h4 className="classification-subheader">All-Time</h4>
+                      <div className="stat-cards-grid">
+                        {allTimeCards.map(metric => (
+                          <MetricCard key={metric.id} {...metric as any} />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
           </div>
         ) : activeFilter !== 'All Metrics' ? (
+          /* Filtered Category Layout */
           <div className="metrics-section">
             <h3 className="metrics-section-title">{activeFilter}</h3>
             {(() => {
               const monthly = filteredMetrics.filter(m => (m as any).donationType?.includes('monthly'));
               const oneTime = filteredMetrics.filter(m => (m as any).donationType?.includes('one-time'));
               const bothEmpty = monthly.length === 0 && oneTime.length === 0;
+              
               return (
                 <>
                   {monthly.length > 0 && (
                     <>
                       <h4 className="metrics-subsection-header">Monthly</h4>
-                      <div className="stat-cards-grid">{monthly.map(metric => (<MetricCard key={metric.id} {...metric as any} />))}</div>
+                      <div className="stat-cards-grid">
+                        {monthly.map(metric => (
+                          <MetricCard key={metric.id} {...metric as any} />
+                        ))}
+                      </div>
                     </>
                   )}
+                  
                   {oneTime.length > 0 && (
                     <>
                       <h4 className="metrics-subsection-header">One-Time</h4>
-                      <div className="stat-cards-grid">{oneTime.map(metric => (<MetricCard key={metric.id} {...metric as any} />))}</div>
+                      <div className="stat-cards-grid">
+                        {oneTime.map(metric => (
+                          <MetricCard key={metric.id} {...metric as any} />
+                        ))}
+                      </div>
                     </>
                   )}
+                  
                   {bothEmpty && (
                     <div className="stat-cards-grid">
                       <p>No metrics available for "{activeFilter}" filter.</p>
@@ -748,17 +938,30 @@ const Metrics: React.FC = () => {
             })()}
           </div>
         ) : (
+          /* All Metrics Layout */
           <div className="stat-cards-grid">
-            {filteredMetrics.map((metric) => (<MetricCard key={metric.id} {...metric as any} />))}
-            {filteredMetrics.length === 0 && (<p>No metrics available for "{activeFilter}" filter.</p>)}
+            {filteredMetrics.map((metric) => (
+              <MetricCard key={metric.id} {...metric as any} />
+            ))}
+            {filteredMetrics.length === 0 && (
+              <p>No metrics available for "{activeFilter}" filter.</p>
+            )}
           </div>
         )}
       </div>
 
 
-       <Modal isOpen={isModalOpen} onClose={closeModal} title={metricDefinitions.find(m => m.id === modalContentId)?.title || 'Details'}>
-        
-        {/* === Main Lists === */}
+      {/* ================================================================== */}
+      {/* MODAL CONTENT SECTION */}
+      {/* ================================================================== */}
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={closeModal} 
+        title={metricDefinitions.find(m => m.id === modalContentId)?.title || 'Details'}
+      >
+        {/* ============================================================ */}
+        {/* OVERVIEW METRICS MODALS */}
+        {/* ============================================================ */}
         {modalContentId === 'newDonors' && (
           <div className="top-list-content">
             {data.newDonorsList.length === 0 ? (
@@ -849,20 +1052,43 @@ const Metrics: React.FC = () => {
             )}
           </div>
         )}
-        {modalContentId === 'churnedMonthly' && (
+
+        {modalContentId === 'activeDonors' && (
       <div className="top-list-content">
-        {(!data.churnedDonorsList || data.churnedDonorsList.length === 0) ? (
-          <div className="top-list-empty">No monthly donors from last year have churned.</div>
+        {(!data.activeDonorsList || data.activeDonorsList.length === 0) ? (
+          <div className="top-list-empty">No active donors found.</div>
         ) : (
           <ul className="top-list">
-            {data.churnedDonorsList.map((item: ChurnedDonorInfo, i: number) => {
+            {data.activeDonorsList.map((item: any, i: number) => {
               if (!item?.donor) { return <li key={`error-${i}`} style={{ color: 'red' }}>Error: Invalid data at index {i}.</li>; }
               return (
                 <li key={item.donor.donorid} className="top-list-item">
                   <div className="top-list-rank">{i + 1}</div>
                   <div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div>
                   <div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email || 'No Email'}</span></div>
-                  <div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d', fontStyle: 'italic'}}>Last Gift: {formatDate(item.lastGiftDate)}</span></div>
+                  <div className="top-list-secondary">Total (3 months): {formatAmount(item.totalDonations)}<br/><span style={{color: '#6c757d'}}>Active Months: {item.monthsActive.join(', ')}</span><br/><span style={{color: '#6c757d'}}>Last Payment: {item.lastPaymentAmount ? formatAmount(item.lastPaymentAmount) : 'N/A'}</span><br/><span style={{color: '#6c757d'}}>Gift Source: {item.lastPaymentGiftSource || 'N/A'}</span></div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    )}
+
+        {modalContentId === 'churnedActiveDonors' && (
+      <div className="top-list-content">
+        {(!data.churnedActiveDonorsList || data.churnedActiveDonorsList.length === 0) ? (
+          <div className="top-list-empty">No churned active donors found.</div>
+        ) : (
+          <ul className="top-list">
+            {data.churnedActiveDonorsList.map((item: any, i: number) => {
+              if (!item?.donor) { return <li key={`error-${i}`} style={{ color: 'red' }}>Error: Invalid data at index {i}.</li>; }
+              return (
+                <li key={item.donor.donorid} className="top-list-item">
+                  <div className="top-list-rank">{i + 1}</div>
+                  <div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div>
+                  <div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email || 'No Email'}</span></div>
+                  <div className="top-list-secondary">Lifetime Total: {formatAmount(item.lifetimeTotal)}<br/><span style={{color: '#6c757d', fontStyle: 'italic'}}>Last Gift: {formatDate(item.lastGiftDate)}</span><br/><span style={{color: '#6c757d'}}>Last Amount: {item.lastRecurringAmount ? formatAmount(item.lastRecurringAmount) : 'N/A'}</span><br/><span style={{color: '#6c757d'}}>Gift Source: {item.lastRecurringGiftSource || 'N/A'}</span></div>
                 </li>
               );
             })}
@@ -1086,14 +1312,12 @@ const Metrics: React.FC = () => {
             <div className="dlv-breakdown">
               <p><strong>Average Lifetime Total per Donor:</strong> {formatAmount(data.onetimeDlvComponents.avgLifetimeTotal)}</p><hr/><p><em>DLV Formula Components:</em></p><p><strong>Average Gift Amount:</strong> {formatAmount(data.onetimeDlvComponents.amount)}</p><p><strong>Average Annual Donations:</strong> {data.onetimeDlvComponents.frequency.toFixed(2)}</p><p><strong>Average Donor Lifespan:</strong> {data.onetimeDlvComponents.lifespan.toFixed(2)} years</p><p className="dlv-formula">{formatAmount(data.onetimeDlvComponents.amount)} &times; {data.onetimeDlvComponents.frequency.toFixed(2)} &times; {data.onetimeDlvComponents.lifespan.toFixed(2)} years = <strong>{formatAmount(data.onetimeMajorDLV)}</strong></p>
             </div>
-            {<ul className="top-list">{data.onetimeDlvCohort.map((item: ContributionListItem, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul>}
+            <ul className="top-list">{data.onetimeDlvCohort.map((item: ContributionListItem, i: number) => (<li key={item.donor.donorid} className="top-list-item"><div className="top-list-rank">{i + 1}</div><div className="top-list-avatar" onClick={() => goToDonor(item.donor.donorid)}>{donorInitials(item.donor)}</div><div className="top-list-details"><span className="clickable-name" onClick={() => goToDonor(item.donor.donorid)}>{donorFullName(item.donor)}</span><br/><span style={{color: '#6c757d'}}>{item.donor.email}</span></div><div className="top-list-secondary">{formatAmount(item.totalContribution)}</div></li>))}</ul>
           </div>
         )}
       </Modal>
     </div>
-      );
-    };
+  );
+};
 
 export default Metrics;
-
-
