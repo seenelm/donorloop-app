@@ -159,11 +159,8 @@
   border-radius: 12px;
   padding: 1.25rem;
   border: 1px solid var(--border-color);
-  box-shadow: 
-    0 2px 4px -1px rgba(0, 0, 0, 0.1),
-    0 1px 2px -1px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.06);
+  backdrop-filter: blur(4px);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -190,10 +187,7 @@
 
 .chart-section:hover {
   transform: translateY(-1px);
-  box-shadow: 
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
 }
 
 .section-header {
@@ -399,8 +393,8 @@
 
 .chart-bar:hover {
   opacity: 1;
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.2);
   z-index: 10;
 }
 
@@ -420,17 +414,11 @@
 }
 
 .chart-bar.this-year:hover {
-  box-shadow: 
-    0 12px 24px rgba(139, 92, 246, 0.6),
-    0 0 0 2px rgba(139, 92, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
 }
 
 .chart-bar.last-year:hover {
-  box-shadow: 
-    0 12px 24px rgba(107, 114, 128, 0.5),
-    0 0 0 2px rgba(107, 114, 128, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 8px rgba(107, 114, 128, 0.3);
 }
 
 .chart-bar.estimated {
@@ -520,8 +508,8 @@
 }
 
 .pie-chart-container:hover {
-  transform: scale(1.05);
-  filter: drop-shadow(0 16px 32px rgba(139, 92, 246, 0.2));
+  transform: scale(1.02);
+  filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.1));
 }
 
 /* Fix transparency for bottom portion in light mode */
@@ -594,8 +582,8 @@
 }
 
 .legend-item:hover {
-  background: rgba(139, 92, 246, 0.05);
-  transform: translateX(4px);
+  background: rgba(139, 92, 246, 0.03);
+  transform: translateX(2px);
 }
 
 .legend-color {
@@ -610,8 +598,8 @@
 }
 
 .legend-item:hover .legend-color {
-  transform: scale(1.2);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .legend-color.major {
@@ -756,11 +744,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  box-shadow: 
-    0 2px 4px -1px rgba(0, 0, 0, 0.1),
-    0 1px 2px -1px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.06);
+  backdrop-filter: blur(4px);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -787,10 +772,7 @@
 
 .alerts-section:hover {
   transform: translateY(-1px);
-  box-shadow: 
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
 }
 
 .alerts-section h4 {
@@ -1097,11 +1079,8 @@
   overflow: hidden;
   display: flex;
   align-items: center;
-  backdrop-filter: blur(12px);
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.1), 
-    0 2px 4px -1px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.06);
 }
 
 .dashboard2-container .dashboard-stat-card::before {
@@ -1124,14 +1103,9 @@
 }
 
 .dashboard2-container .dashboard-stat-card:hover {
-  transform: translateY(-4px) scale(1.03);
-  box-shadow: 
-    0 25px 35px -5px rgba(139, 92, 246, 0.15),
-    0 15px 15px -5px rgba(139, 92, 246, 0.08),
-    0 0 0 1px rgba(139, 92, 246, 0.2),
-    0 0 30px rgba(139, 92, 246, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.2);
 }
 
 .dashboard2-container .dashboard-stat-card:hover::before {
@@ -1181,12 +1155,8 @@
 }
 
 .dashboard2-container .dashboard-stat-card:hover .stat-card-icon {
-  transform: scale(1.15) rotate(5deg);
-  box-shadow: 
-    0 12px 20px rgba(139, 92, 246, 0.5),
-    0 6px 12px rgba(139, 92, 246, 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.2);
 }
 
 .dashboard2-container .stat-card-info {
